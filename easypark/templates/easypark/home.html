@@ -10,19 +10,25 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body {
-            font-family: 'Kanit', sans-serif;
-            background-color: #f4f4f4;
+            font-family: 'Arial', sans-serif;
             margin: 0;
             padding: 0;
+            background-color: #f4f4f4;
         }
 
         .header {
             background-color: #333;
-            color: #fff;
-            padding: 15px 0;
+            color: white;
+            padding: 10px 0;
             text-align: center;
-            font-size: 2rem;
-            font-weight: bold;
+            font-size: 20px;
+        }
+
+        .headers {
+            background-color: #333;
+            padding: 10px 0;
+            text-align: center;
+            font-size: 50px;
         }
 
         .banner img {
@@ -32,6 +38,7 @@
 
         .navigation {
             display: flex;
+            background-color: #333;
             justify-content: center;
             margin-top: 20px;
         }
@@ -76,46 +83,89 @@
             top: 0;
             width: 100%;
             height: 100%;
-            background-color: rgba(0, 0, 0, 0.5);
+            background-color: rgba(0, 0, 0, 0.75);
+            /* เปลี่ยน opacity ให้เข้มขึ้น */
             justify-content: center;
             align-items: center;
+            animation: fadeIn 0.3s ease;
+            /* เพิ่มแอนิเมชันในการแสดง */
         }
 
         .modal-content {
-            background-color: #fff;
-            padding: 20px;
-            border-radius: 8px;
-            width: 300px;
+            background-color: #fefefe;
+            /* โทนขาวอ่อนๆ */
+            padding: 30px;
+            border-radius: 12px;
+            width: 350px;
+            /* เพิ่มขนาด */
+            max-width: 90%;
             text-align: center;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            /* เพิ่มเงา */
+            transform: scale(0.95);
+            /* เพิ่มการขยายตอนแสดง */
+            animation: scaleUp 0.3s ease forwards;
         }
 
         .close-btn {
-            background-color: #ff5f5f;
-            color: #fff;
+            background-color: #FF6B6B;
+            /* เปลี่ยนสีแดงให้ซอฟต์ลง */
+            color: white;
             border: none;
-            padding: 10px 20px;
-            border-radius: 4px;
+            padding: 12px 25px;
+            border-radius: 50px;
+            /* ปรับเป็นปุ่มมน */
+            font-size: 1rem;
             cursor: pointer;
+            margin-top: 20px;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+            /* เพิ่มการเปลี่ยนแปลงเมื่อ hover */
         }
 
         .close-btn:hover {
-            background-color: #ff3b3b;
+            background-color: #FF3B3B;
+            transform: scale(1.05);
+            /* ขยายปุ่มเล็กน้อยเมื่อ hover */
+        }
+
+        /* แอนิเมชันการเปิด modal */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
+        @keyframes scaleUp {
+            from {
+                transform: scale(0.9);
+            }
+
+            to {
+                transform: scale(1);
+            }
         }
     </style>
+</head>
 
 <body>
 
     <!-- Header -->
-    <div class="header bg-gray-800 text-white py-3 text-center">
-        <h1 class="text-xl font-bold">EASY PARKING</h1>
-        <div class="navigation mt-4">
+    <div class="headers">
+        EASY PARKING
+    </div>
+    <div class="header">
+        <div class="navigation">
             <!-- ฟอร์มการค้นหาที่จอดรถ -->
             <form method="get" id="parkingForm" action="{% url 'redirect_parking' %}"
                 class="flex justify-center items-center">
                 <div class="mr-4">
                     <label for="location" class="block text-sm font-semibold text-yellow-400">สถานที่จอด:</label>
                     <select name="location" id="location"
-                        class="mt-2 block w-full p-1 border border-gray-300 rounded-lg text-black">
+                        class="mt-2 block w-full p-2 border-gray-300 rounded-lg text-black">
                         {% for row in sheet_data %}
                         <option value="{{ row.0 }}">{{ row.0 }}</option>
                         {% endfor %}
@@ -125,7 +175,7 @@
                 <div class="mr-4">
                     <label for="date" class="block text-sm font-semibold text-yellow-400">วันที่เข้าจอด:</label>
                     <input type="date" id="date" name="date"
-                        class="mt-2 block w-full p-1 border border-gray-300 rounded-lg text-black">
+                        class="mt-2 block w-full p-2 border-gray-300 rounded-lg text-black">
                 </div>
 
                 <div>
@@ -138,6 +188,14 @@
         </div>
     </div>
 
+    <!-- Form Section -->
+
+
+    <!-- Banner -->
+    <div class="banner">
+        <img src="{% static 'image/banner.gif' %}" alt="Easy Parking Banner">
+    </div>
+
     <!-- Content -->
     <div class="content">
         <h2>จองที่จอดรถ</h2>
@@ -145,52 +203,37 @@
         <p>จองที่จอดรถออนไลน์ ชำระค่าบริการออนไลน์ สะดวกรวดเร็ว ปลอดภัย</p>
     </div>
 
-</body>
-
-
-
-
-<!-- Banner -->
-<div class="banner">
-    <img src="{% static 'image/banner.gif' %}" alt="Easy Parking Banner">
-</div>
-
-<!-- Content -->
-<div class="content">
-    <h2>จองที่จอดรถ</h2>
-    <p>Easy Park Easy Life ช่วยให้ชีวิตของผู้ใช้สะดวกมากยิ่งขึ้น</p>
-    <p>จองที่จอดรถออนไลน์ ชำระค่าบริการออนไลน์ สะดวกรวดเร็ว ปลอดภัย</p>
-</div>
-
-<!-- Modal สำหรับแสดงการเตือน -->
-<div id="dateModal" class="modal flex">
-    <div class="modal-content">
-        <p>กรุณาเลือกวันที่</p>
-        <button class="close-btn" onclick="closeModal()">ปิด</button>
+    <!-- Modal สำหรับแสดงการเตือน -->
+    <div id="dateModal" class="modal flex" style="display: none;">
+        <div class="modal-content">
+            <p>กรุณาเลือกวันที่</p>
+            <button class="close-btn" onclick="closeModal()">ปิด</button>
+        </div>
     </div>
-</div>
 
-<script>
-    document.getElementById('parkingForm').addEventListener('submit', function (event) {
-        const dateInput = document.getElementById('date').value;
+    <!-- ฟังก์ชัน JavaScript -->
+    <script>
+        document.getElementById('parkingForm').addEventListener('submit', function (event) {
+            const dateInput = document.getElementById('date').value;
 
-        if (!dateInput) {
-            event.preventDefault(); // หยุดการส่งฟอร์ม
-            document.getElementById('dateModal').style.display = 'flex'; // แสดง modal
+            if (!dateInput) {
+                event.preventDefault(); // หยุดการส่งฟอร์ม
+                document.getElementById('dateModal').style.display = 'flex'; // แสดง modal
+            }
+        });
+
+        function closeModal() {
+            document.getElementById('dateModal').style.display = 'none'; // ปิด modal
         }
-    });
 
-    function closeModal() {
-        document.getElementById('dateModal').style.display = 'none'; // ปิด modal
-    }
+        // ตรวจจับการคลิกนอก modal เพื่อปิด modal
+        document.getElementById('dateModal').addEventListener('click', function (event) {
+            if (event.target === document.getElementById('dateModal')) {
+                closeModal(); // ปิด modal เมื่อคลิกนอก modal content
+            }
+        });
+    </script>
 
-    // ตรวจจับการคลิกนอก modal เพื่อปิด modal
-    document.getElementById('dateModal').addEventListener('click', function (event) {
-        if (event.target === document.getElementById('dateModal')) {
-            closeModal(); // ปิด modal เมื่อคลิกนอก modal content
-        }
-    });
-</script>
 </body>
 
 </html>

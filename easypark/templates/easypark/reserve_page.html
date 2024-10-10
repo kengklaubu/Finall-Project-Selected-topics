@@ -56,30 +56,39 @@
                 <input type="hidden" name="spot_number" value="{{ spot.spot_number }}">
                 <div class="mb-4">
                     <label for="name" class="block text-gray-700 font-bold mb-2">ชื่อผู้จอง :</label>
-                    <input type="text" id="name" name="name" class="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400" required>
+                    <input type="text" id="name" name="name"
+                        class="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400"
+                        required>
                 </div>
                 <div class="mb-4">
                     <label for="license_plate" class="block text-gray-700 font-bold mb-2">ป้ายทะเบียนรถ :</label>
-                    <input type="text" id="license_plate" name="license_plate" class="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400" required>
+                    <input type="text" id="license_plate" name="license_plate"
+                        class="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400"
+                        required>
                 </div>
                 <div class="mb-4">
                     <label for="phone" class="block text-gray-700 font-bold mb-2">เบอร์โทร :</label>
-                    <input type="tel" id="phone" name="phone" class="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400" required>
+                    <input type="tel" id="phone" name="phone"
+                        class="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400"
+                        required>
                 </div>
                 <div class="mb-4">
                     <input type="checkbox" id="terms" name="terms" required>
                     <label for="terms" class="text-gray-600">ยืนยันข้อมูลและข้อตกลงในการจองที่จอดรถ</label>
                 </div>
-                <button type="submit" class="w-full bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-500 transition">
+                <button type="submit"
+                    class="w-full bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-500 transition">
                     ยืนยัน
                 </button>
             </form>
         </div>
 
         <!-- ปุ่มย้อนกลับ -->
-        <a href="{% url 'parking_location' %}" class="mt-4 inline-block bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400 transition">
+        <a href="{% url 'parking_location' location=location date=date %}"
+            class="mt-4 inline-block bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400 transition">
             ย้อนกลับ
         </a>
+
     </div>
 
 </body>

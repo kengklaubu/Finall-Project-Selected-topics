@@ -1,25 +1,305 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
+    {% load static %}
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ลานจอดตึกวิจัย</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-</head>
-<body class="bg-gray-100">
+    <title>รายละเอียดสถานที่จอดรถ</title>
 
-    <div class="container mx-auto p-4">
-        <h1 class="text-2xl font-bold mb-4">ลานจอดตึกวิจัย - วันที่ {{ date }}</h1>
-        <div class="grid grid-cols-3 gap-4">
-            {% for spot in parking_spots %}
-            <div class="bg-white p-4 rounded-lg shadow-md">
-                <p>ช่องจอด: {{ spot.spot_number }}</p>
-                <p>สถานะ: {{ spot.is_available|yesno:"ว่าง,ไม่ว่าง" }}</p>
-                <p>ทะเบียนรถ: {{ spot.license_plate }}</p>
-            </div>
-            {% endfor %}
+</head>
+<link href="{% static 'easypark/css/styles.css' %}" rel="stylesheet">
+
+<body>
+    {% load static %}
+    <!-- Header Section -->
+    <div class="header">
+        <div class="logo">
+            <img src="{% static 'image/logo.png' %}" alt="Easy Parking Logo">
+            <h1>Easy Parking</h1>
+        </div>
+        <div class="nav-menu">
+            <a href="{% url 'homepage' %}">หน้าหลัก</a>
+            <a href="#">แผนที่</a>
+        </div>
+        <div class="user-icon">
+            <img src="{% static 'easypark/image/user_1.png' %}" alt="User Icon">
         </div>
     </div>
 
+    <!-- Main Content Section -->
+    <div class="container">
+        <!-- Map Section -->
+        <div class="map-container">
+            <img src="{% static 'image/sc_parking_map.png' %}" alt="Parking Map">
+        </div>
+
+        <div class="map-container map">
+            <img src="{% static 'easypark/image/spot_sc.png' %}" alt="Parking Map">
+        </div>
+
+        <!-- Parking Layout Section -->
+        <div class="parking-layout">
+            <div id="spot-1" class="parking-spot" onclick="showSpotDetails(1)">1</div>
+            <div id="spot-2" class="parking-spot" onclick="showSpotDetails(2)">2</div>
+            <div id="spot-3" class="parking-spot" onclick="showSpotDetails(3)">3</div>
+            <div id="spot-4" class="parking-spot" onclick="showSpotDetails(4)">4</div>
+            <div id="spot-5" class="parking-spot" onclick="showSpotDetails(5)">5</div>
+            <div id="spot-6" class="parking-spot" onclick="showSpotDetails(6)">6</div>
+            <div id="spot-7" class="parking-spot" onclick="showSpotDetails(7)">7</div>
+            <div id="spot-8" class="parking-spot" onclick="showSpotDetails(8)">8</div>
+            <div id="spot-9" class="parking-spot" onclick="showSpotDetails(9)">9</div>
+            <div id="spot-10" class="parking-spot" onclick="showSpotDetails(10)">10</div>
+            <div id="spot-11" class="parking-spot" onclick="showSpotDetails(11)">11</div>
+            <div id="spot-12" class="parking-spot" onclick="showSpotDetails(12)">12</div>
+            <div id="spot-13" class="parking-spot" onclick="showSpotDetails(13)">13</div>
+            <div id="spot-14" class="parking-spot" onclick="showSpotDetails(14)">14</div>
+            <div id="spot-15" class="parking-spot" onclick="showSpotDetails(15)">15</div>
+            <div id="spot-16" class="parking-spot" onclick="showSpotDetails(16)">16</div>
+            <div id="spot-17" class="parking-spot" onclick="showSpotDetails(17)">17</div>
+            <div id="spot-18" class="parking-spot" onclick="showSpotDetails(18)">18</div>
+            <div id="spot-19" class="parking-spot" onclick="showSpotDetails(19)">19</div>
+            <div id="spot-20" class="parking-spot" onclick="showSpotDetails(20)">20</div>
+            <div id="spot-21" class="parking-spot" onclick="showSpotDetails(21)">21</div>
+            <div id="spot-22" class="parking-spot" onclick="showSpotDetails(22)">22</div>
+            <div id="spot-23" class="parking-spot" onclick="showSpotDetails(23)">23</div>
+            <div id="spot-24" class="parking-spot" onclick="showSpotDetails(24)">24</div>
+        </div>
+    </div>
+    <style>
+        .container {
+            display: flex;
+            justify-content: space-around;
+            margin: 20px;
+            padding: 10px;
+        }
+
+        .map-container {
+            flex: 1;
+            margin-right: 20px;
+        }
+
+        .map-container img {
+            width: 100%;
+            max-width: 550px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .parking-spot {
+            width: 50px;
+            height: 50px;
+            display: inline-block;
+            margin: 5px;
+            background-color: grey;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-weight: bold;
+            border-radius: 15px;
+        }
+
+        .back-button {
+            text-align: right;
+            margin-top: 20px;
+        }
+
+        .back-button a {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            text-decoration: none;
+            border-radius: 4px;
+        }
+
+        .back-button a:hover {
+            background-color: #45a049;
+        }
+
+        #details-container {
+            display: none;
+            /* เริ่มต้นไม่แสดง */
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.3);
+            z-index: 1000;
+            width: 400px;
+            max-width: 80%;
+        }
+
+        .modal-overlay {
+            display: none;
+            /* เริ่มต้นไม่แสดง */
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 999;
+        }
+
+        .close-btn {
+            float: right;
+            cursor: pointer;
+            background-color: red;
+            color: white;
+            padding: 5px 10px;
+            border: none;
+            border-radius: 5px;
+        }
+
+        .close-btn:hover {
+            background-color: darkred;
+        }
+
+        .reserve-btn {
+            background-color: #4CAF50;
+            /* สีเขียว */
+            color: white;
+            padding: 10px 20px;
+            font-size: 16px;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.3s ease;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            /* เพิ่มเงา */
+        }
+
+        .reserve-btn:hover {
+            background-color: #45a049;
+            /* เปลี่ยนสีเมื่อ hover */
+            transform: scale(1.05);
+            /* ขยายปุ่มเล็กน้อยเมื่อ hover */
+        }
+
+        .reserve-btn:active {
+            transform: scale(0.95);
+            /* ลดขนาดปุ่มเล็กน้อยเมื่อถูกกด */
+        }
+
+        .reserve-btn:disabled {
+            background-color: grey;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+    </style>
+
+
+    <!-- Details Section -->
+    <!-- Modal Overlay -->
+    <div id="modal-overlay"
+        style="display:none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.5); z-index: 999;">
+        <div id="details-container"
+            style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background-color: white; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); z-index: 1000;">
+            <!-- รายละเอียดจะแสดงที่นี่ -->
+        </div>
+    </div>
+
+
+
+    <!-- Back Button -->
+    <div class="back-button">
+        <a href="{% url 'homepage' %}">ย้อนกลับ</a>
+    </div>
+
+    <!-- วางโค้ด AJAX ที่นี่ -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        function fetchParkingStatus() {
+            $.ajax({
+                url: "{% url 'get_parking_status' %}",  // URL ที่เรียกข้อมูลสถานะที่จอดรถ
+                method: "GET",
+                success: function (data) {
+                    data.forEach(function (spot) {
+                        var spotElement = document.getElementById("spot-" + spot.spot_number);
+                        if (spot.is_available) {
+                            spotElement.style.backgroundColor = "green";  // ช่องว่าง
+                        } else {
+                            spotElement.style.backgroundColor = "red";    // ช่องไม่ว่าง
+                        }
+                    });
+                }
+            });
+        }
+
+        function showSpotDetails(spotNumber) {
+            $.ajax({
+                url: "{% url 'get_spot_details' %}?spot=" + spotNumber,
+                method: "GET",
+                success: function (data) {
+                    if (data.error) {
+                        document.getElementById("details-container").innerHTML = `
+                <button class="reserve-btn" onclick="closeModal()">ปิด</button>
+                <p>${data.error}</p>
+            `;
+                    } else {
+                        // ถ้าช่องนี้ถูกจองไปแล้ว
+                        if (data.reserved_by !== 'ว่าง') {
+                            document.getElementById("details-container").innerHTML = `
+                    <h3>ช่องจอดหมายเลข ${data.spot_number}</h3>
+                    <p>จองโดย: ${data.reserved_by}</p>
+                    <p>ทะเบียนรถ: ${data.license_plate}</p>
+                    <p style="color:red;">ช่องนี้มีคนจองแล้ว ไม่สามารถจองได้</p>
+                    <button class="reserve-btn" onclick="closeModal()">ปิด</button>
+                `;
+                        } else {
+                            // ถ้าช่องนี้ยังว่าง สามารถจองได้
+                            document.getElementById("details-container").innerHTML = `
+                    <h3>ช่องจอดหมายเลข ${data.spot_number}</h3>
+                    <p>จองโดย: ${data.reserved_by}</p>
+                    <p>ทะเบียนรถ: ${data.license_plate}</p>
+                    <button class="reserve-btn" onclick="goToReservePage(${data.spot_number})">จองที่นี่</button>
+                    <button class="reserve-btn" onclick="closeModal()">ปิด</button>
+                `;
+                        }
+                    }
+                    showModal();  // แสดง modal
+                },
+                error: function () {
+                    document.getElementById("details-container").innerHTML = `
+            <button class="reserve-btn" onclick="closeModal()">ปิด</button>
+            <p>เกิดข้อผิดพลาดในการดึงข้อมูล</p>
+        `;
+                    showModal();  // แสดง modal เมื่อเกิดข้อผิดพลาด
+                }
+            });
+        }
+
+        function goToReservePage(spotNumber) {
+            // Redirect ไปที่หน้าสำหรับจองพร้อมกับข้อมูล spot_number
+            window.location.href = `/reserve_page/${spotNumber}/`;
+        }
+
+        function showModal() {
+            document.getElementById("details-container").style.display = "block";
+            document.getElementById("modal-overlay").style.display = "block";
+
+            // เพิ่ม event listener เพื่อปิด modal เมื่อคลิกนอก modal
+            document.getElementById("modal-overlay").addEventListener("click", function (event) {
+                if (event.target === document.getElementById("modal-overlay")) {
+                    closeModal();
+                }
+            });
+        }
+
+        function closeModal() {
+            document.getElementById("details-container").style.display = "none";
+            document.getElementById("modal-overlay").style.display = "none";
+        }
+
+        // เรียก fetchParkingStatus ทุกๆ 2 วินาที
+        setInterval(fetchParkingStatus, 2000);
+    </script>
+
 </body>
+
 </html>

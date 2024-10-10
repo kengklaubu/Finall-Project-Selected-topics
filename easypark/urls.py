@@ -19,4 +19,5 @@ urlpatterns = [
     path('reserve_page/<int:spot_number>/', views.reserve_page, name='reserve_page'),  # ส่งค่า spot_number ไปหน้า reserve_page
     path('confirm_reservation/', views.confirm_reservation, name='confirm_reservation'),
     path('cancel_reservation/', views.cancel_reservation, name='cancel_reservation'),
+    path('parking-location/<str:location>/<str:date>/', views.parking_location, name='parking_location'),
 ]

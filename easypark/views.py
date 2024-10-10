@@ -27,8 +27,16 @@ from django.shortcuts import render
 from .models import ParkingSpot
 
 def parking_location(request, location, date):
+    # ตรวจสอบว่า location และ date ถูกต้อง
+    if not location or not date:
+        return render(request, 'easypark/error.html', {'message': 'ข้อมูลที่คุณส่งมาไม่ถูกต้อง'})
+
     # ค้นหาที่จอดรถจากฐานข้อมูลตาม location และ date
     parking_spots = ParkingSpot.objects.filter(location=location, date=date)
+    
+    # ถ้าไม่พบที่จอดรถ
+    if not parking_spots.exists():
+        return render(request, 'easypark/error.html', {'message': 'ไม่พบที่จอดรถที่ตรงกับข้อมูลที่ค้นหา'})
     
     context = {
         'parking_spots': parking_spots,
@@ -36,7 +44,8 @@ def parking_location(request, location, date):
         'date': date,
     }
     
-    return render(request, 'easypark/parking_detail.html', context)
+    return render(request, 'easypark/parking_location.html', context)
+
 
 
 
@@ -122,11 +131,12 @@ def reserve_page(request, spot_number):
         context = {
             'spot_number': spot.spot_number,
             'location': spot.location,
-            'reservation_time': spot.date,  # ตัวอย่างการใช้ข้อมูลการจอง
+            'date': spot.date,  # ต้องมีข้อมูล date
         }
         return render(request, 'easypark/reserve_page.html', context)
     except ParkingSpot.DoesNotExist:
         return render(request, 'error.html', {'message': 'ไม่พบที่จอดรถที่คุณเลือก'})
+
 
 
 # ฟังก์ชันสำหรับยืนยันการจอง
