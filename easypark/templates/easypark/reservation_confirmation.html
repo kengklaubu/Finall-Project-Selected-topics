@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+    {% load static %}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ยืนยันการจอง</title>
+    <link href="{% static 'easypark/css/styles.css' %}" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-gray-100 h-screen">
+    <div class="container mx-auto p-4">
+        <div class="bg-white p-6 rounded-lg shadow-lg">
+            <h2 class="text-2xl font-bold mb-4">รายการจองของคุณ</h2>
+
+            <div class="mb-4">
+                <p>ช่องจอดที่: <span class="font-bold">ช่องจอดรถที่ {{ spot_number }}</span></p>
+                <p>สถานที่: <span class="font-bold">{{ location }}</span></p> <!-- ตรวจสอบให้แน่ใจว่า location ถูกส่งมาถูกต้อง -->
+            </div>
+
+            <div class="mb-4">
+                <p>*หมายเหตุ :</p>
+                <p class="text-gray-600">
+                    ผู้ใช้ต้องเข้ามาจอดในเวลาที่กำหนด ห้ามมาสายกว่าที่ระบบกำหนด หากผู้ใช้มาสาย ระบบจะทำการปล่อยยกเลิกการจองอัตโนมัติ
+                </p>
+            </div>
+
+            <div class="mb-4">
+                <p>เวลาที่ผู้ใช้ต้องเข้าไปจอด:</p>
+                <div class="p-2 bg-gray-200 rounded-lg inline-block">
+                    <p class="font-bold text-gray-800">{{ reservation_time }}</p>
+                </div>
+            </div>
+
+            <div class="flex justify-between items-center mt-6">
+                <!-- ฟอร์มสำหรับยกเลิกการจอง -->
+                <form method="post" action="{% url 'cancel_reservation' %}">
+                    {% csrf_token %}
+                    <button class="bg-red-500 text-white px-4 py-2 rounded-lg">ยกเลิกการจอง</button>
+                </form>
+
+                <!-- ฟอร์มสำหรับยืนยันการเข้าจอด -->
+                <form method="post" action="{% url 'homepage' %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="spot_number" value="{{ spot_number }}">
+                    <input type="hidden" name="location" value="{{ location }}">
+                    <button class="bg-green-500 text-white px-4 py-2 rounded-lg">ยืนยันการเข้าจอด</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>

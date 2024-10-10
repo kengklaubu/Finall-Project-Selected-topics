@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    {% load static %}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Easy Parking - จองที่จอดรถ</title>
+    <link href="{% static 'css/styles.css' %}" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Kanit', sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+        }
+
+        .header {
+            background-color: #333;
+            color: #fff;
+            padding: 15px 0;
+            text-align: center;
+            font-size: 2rem;
+            font-weight: bold;
+        }
+
+        .banner img {
+            width: 100%;
+            height: auto;
+        }
+
+        .navigation {
+            display: flex;
+            justify-content: center;
+            margin-top: 20px;
+        }
+
+        .nav-button {
+            background-color: #ccc;
+            border: none;
+            padding: 10px 20px;
+            font-size: 1rem;
+            margin: 0 10px;
+            cursor: pointer;
+            border-radius: 6px;
+            transition: background-color 0.3s;
+        }
+
+        .nav-button:hover {
+            background-color: #555;
+            color: #fff;
+        }
+
+        .content {
+            text-align: center;
+            margin: 30px 0;
+        }
+
+        .content h2 {
+            font-size: 1.8rem;
+            margin-bottom: 10px;
+        }
+
+        .content p {
+            font-size: 1.1rem;
+            color: #666;
+        }
+
+        /* ปรับแต่ง Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 999;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            width: 300px;
+            text-align: center;
+        }
+
+        .close-btn {
+            background-color: #ff5f5f;
+            color: #fff;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .close-btn:hover {
+            background-color: #ff3b3b;
+        }
+    </style>
+
+<body>
+
+    <!-- Header -->
+    <div class="header bg-gray-800 text-white py-3 text-center">
+        <h1 class="text-xl font-bold">EASY PARKING</h1>
+        <div class="navigation mt-4">
+            <!-- ฟอร์มการค้นหาที่จอดรถ -->
+            <form method="get" id="parkingForm" action="{% url 'redirect_parking' %}"
+                class="flex justify-center items-center">
+                <div class="mr-4">
+                    <label for="location" class="block text-sm font-semibold text-yellow-400">สถานที่จอด:</label>
+                    <select name="location" id="location"
+                        class="mt-2 block w-full p-1 border border-gray-300 rounded-lg text-black">
+                        {% for row in sheet_data %}
+                        <option value="{{ row.0 }}">{{ row.0 }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="mr-4">
+                    <label for="date" class="block text-sm font-semibold text-yellow-400">วันที่เข้าจอด:</label>
+                    <input type="date" id="date" name="date"
+                        class="mt-2 block w-full p-1 border border-gray-300 rounded-lg text-black">
+                </div>
+
+                <div>
+                    <button type="submit"
+                        class="mt-6 bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition">
+                        ค้นหาที่จอด
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Content -->
+    <div class="content">
+        <h2>จองที่จอดรถ</h2>
+        <p>Easy Park Easy Life ช่วยให้ชีวิตของผู้ใช้สะดวกมากยิ่งขึ้น</p>
+        <p>จองที่จอดรถออนไลน์ ชำระค่าบริการออนไลน์ สะดวกรวดเร็ว ปลอดภัย</p>
+    </div>
+
+</body>
+
+
+
+
+<!-- Banner -->
+<div class="banner">
+    <img src="{% static 'image/banner.gif' %}" alt="Easy Parking Banner">
+</div>
+
+<!-- Content -->
+<div class="content">
+    <h2>จองที่จอดรถ</h2>
+    <p>Easy Park Easy Life ช่วยให้ชีวิตของผู้ใช้สะดวกมากยิ่งขึ้น</p>
+    <p>จองที่จอดรถออนไลน์ ชำระค่าบริการออนไลน์ สะดวกรวดเร็ว ปลอดภัย</p>
+</div>
+
+<!-- Modal สำหรับแสดงการเตือน -->
+<div id="dateModal" class="modal flex">
+    <div class="modal-content">
+        <p>กรุณาเลือกวันที่</p>
+        <button class="close-btn" onclick="closeModal()">ปิด</button>
+    </div>
+</div>
+
+<script>
+    document.getElementById('parkingForm').addEventListener('submit', function (event) {
+        const dateInput = document.getElementById('date').value;
+
+        if (!dateInput) {
+            event.preventDefault(); // หยุดการส่งฟอร์ม
+            document.getElementById('dateModal').style.display = 'flex'; // แสดง modal
+        }
+    });
+
+    function closeModal() {
+        document.getElementById('dateModal').style.display = 'none'; // ปิด modal
+    }
+
+    // ตรวจจับการคลิกนอก modal เพื่อปิด modal
+    document.getElementById('dateModal').addEventListener('click', function (event) {
+        if (event.target === document.getElementById('dateModal')) {
+            closeModal(); // ปิด modal เมื่อคลิกนอก modal content
+        }
+    });
+</script>
+</body>
+
+</html>
