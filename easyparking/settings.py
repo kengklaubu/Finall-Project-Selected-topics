@@ -29,11 +29,16 @@ ALLOWED_HOSTS = []
 
 APPEND_SLASH = False
 
+LOGIN_REDIRECT_URL = 'profile'  # เปลี่ยนเส้นทางไปหน้าโปรไฟล์
+LOGOUT_REDIRECT_URL = 'homepage'  # Redirect ไปหน้าแรกหลังออกจากระบบ
+LOGIN_URL = 'login'  # URL ของหน้า login
+
 
 
 # Application definition
 
 INSTALLED_APPS = [
+    "channels",
     "easypark",
     "django.contrib.admin",
     "django.contrib.auth",
@@ -44,34 +49,42 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
-    "django.middleware.security.SecurityMiddleware",
-    "django.contrib.sessions.middleware.SessionMiddleware",
-    "django.middleware.common.CommonMiddleware",
-    "django.middleware.csrf.CsrfViewMiddleware",
-    "django.contrib.auth.middleware.AuthenticationMiddleware",
-    "django.contrib.messages.middleware.MessageMiddleware",
-    "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    'django.middleware.security.SecurityMiddleware',
+    'django.contrib.sessions.middleware.SessionMiddleware',
+    'django.middleware.common.CommonMiddleware',
+    'django.middleware.csrf.CsrfViewMiddleware',
+    'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'django.contrib.messages.middleware.MessageMiddleware',
+    'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
+
+
 
 ROOT_URLCONF = "easyparking.urls"
 
+import os
+
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
 TEMPLATES = [
     {
-        "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [],
-        "APP_DIRS": True,
-        "OPTIONS": {
-            "context_processors": [
-                "django.template.context_processors.debug",
-                "django.template.context_processors.request",
-                "django.contrib.auth.context_processors.auth",
-                "django.contrib.messages.context_processors.messages",
+        'BACKEND': 'django.template.backends.django.DjangoTemplates',
+        'DIRS': [os.path.join(BASE_DIR, 'templates')],  # ชี้ไปที่โฟลเดอร์ templates
+        'APP_DIRS': True,
+        'OPTIONS': {
+            'context_processors': [
+                'django.template.context_processors.debug',
+                'django.template.context_processors.request',
+                'django.contrib.auth.context_processors.auth',
+                'django.contrib.messages.context_processors.messages',
             ],
         },
     },
 ]
 
+
 WSGI_APPLICATION = "easyparking.wsgi.application"
+ASGI_APPLICATION = "easyparking.asgi.application"
 
 
 # Database
@@ -101,17 +114,20 @@ DATABASES = {
 
 AUTH_PASSWORD_VALIDATORS = [
     {
-        "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator",
+        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',  #ป้องกันไม่ให้ผู้ใช้ตั้งรหัสผ่านที่คล้ายกับชื่อผู้ใช้ อีเมล หรือข้อมูลส่วนตัวอื่นๆ
     },
     {
-        "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
+        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
+        'OPTIONS': {
+            'min_length': 8,  # กำหนดความยาวขั้นต่ำของรหัสผ่าน
+        },
     },
     {
-        "NAME": "django.contrib.auth.password_validation.CommonPasswordValidator",
-    },
+        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
+    },   #ป้องกันไม่ให้ผู้ใช้ตั้งรหัสผ่านที่เป็นคำธรรมดาหรือคำนิยม เช่น "password", "123456"
     {
-        "NAME": "django.contrib.auth.password_validation.NumericPasswordValidator",
-    },
+        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
+    },      #ป้องกันไม่ให้รหัสผ่านมีแค่ตัวเลขล้วน เช่น "12345678"
 ]
 
 
@@ -136,13 +152,13 @@ from pathlib import Path
 # BASE_DIR จะอ้างอิงถึง root directory ของโปรเจค
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# Static files (CSS, JavaScript, Images)
 STATIC_URL = '/static/'
-
-# ระบุ static file directory ของโปรเจค
 STATICFILES_DIRS = [
     BASE_DIR / "static",
 ]
+STATIC_ROOT = BASE_DIR / "staticfiles"
+
+
 
 
 

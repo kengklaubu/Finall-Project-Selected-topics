@@ -8,6 +8,7 @@
     <title>Easy Parking - จองที่จอดรถ</title>
     <link href="{% static 'css/styles.css' %}" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
+
     <style>
         body {
             font-family: 'Arial', sans-serif;
@@ -160,14 +161,15 @@
     <div class="header">
         <div class="navigation">
             <!-- ฟอร์มการค้นหาที่จอดรถ -->
-            <form method="get" id="parkingForm" action="{% url 'redirect_parking' %}"
+            <form method="get" id="parkingForm"
+                action="{% if user.is_authenticated %}{% url 'redirect_parking' %}{% else %}#{% endif %}"
                 class="flex justify-center items-center">
                 <div class="mr-4">
                     <label for="location" class="block text-sm font-semibold text-yellow-400">สถานที่จอด:</label>
                     <select name="location" id="location"
                         class="mt-2 block w-full p-2 border-gray-300 rounded-lg text-black">
-                        {% for row in sheet_data %}
-                        <option value="{{ row.0 }}">{{ row.0 }}</option>
+                        {% for location in locations %}
+                        <option value="{{ location }}">{{ location }}</option>
                         {% endfor %}
                     </select>
                 </div>
@@ -188,6 +190,7 @@
         </div>
     </div>
 
+
     <!-- Form Section -->
 
 
@@ -207,32 +210,122 @@
     <div id="dateModal" class="modal flex" style="display: none;">
         <div class="modal-content">
             <p>กรุณาเลือกวันที่</p>
-            <button class="close-btn" onclick="closeModal()">ปิด</button>
+            <button class="close-btn" onclick="closeDateModal()">ปิด</button>
         </div>
     </div>
 
-    <!-- ฟังก์ชัน JavaScript -->
+    <!-- Modal สำหรับ Login และ Register -->
+    <div id="loginModal" class="modal hidden fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center">
+        <div class="modal-content bg-white p-6 rounded-lg shadow-lg text-center">
+            <h2 class="text-2xl font-bold mb-4">กรุณาเข้าสู่ระบบ</h2>
+            <p class="text-gray-600 mb-6">เพื่อดำเนินการค้นหาสถานที่จอดรถ กรุณาเข้าสู่ระบบก่อน</p>
+            <div class="flex justify-center space-x-4">
+                <button id="loginBtn"
+                    class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition">Login</button>
+                <button id="registerBtn"
+                    class="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition">Register</button>
+            </div>
+            <button id="closeLoginModal" class="mt-4 text-gray-500 hover:text-gray-700">ปิด</button>
+        </div>
+    </div>
+
     <script>
+        // ตรวจสอบสถานะการเข้าสู่ระบบ
+        const isAuthenticated = "{{ user.is_authenticated|yesno:'true,false' }}";
+
+        // ฟังก์ชันเปิด Modal สำหรับ Login
+        const openLoginModal = () => {
+            const loginModal = document.getElementById('loginModal');
+            loginModal.classList.remove('hidden');
+            loginModal.classList.add('flex');
+        };
+
+        // ฟังก์ชันปิด Modal สำหรับ Login
+        const closeLoginModal = () => {
+            const loginModal = document.getElementById('loginModal');
+            loginModal.classList.add('hidden');
+            loginModal.classList.remove('flex');
+        };
+
+        // ฟังก์ชันปิด Modal สำหรับวันที่
+        const closeDateModal = () => {
+            const dateModal = document.getElementById('dateModal');
+            dateModal.style.display = 'none';
+        };
+
+        // ตรวจสอบฟอร์มเมื่อผู้ใช้คลิก "ค้นหาที่จอด"
         document.getElementById('parkingForm').addEventListener('submit', function (event) {
             const dateInput = document.getElementById('date').value;
 
             if (!dateInput) {
                 event.preventDefault(); // หยุดการส่งฟอร์ม
-                document.getElementById('dateModal').style.display = 'flex'; // แสดง modal
+                document.getElementById('dateModal').style.display = 'flex'; // แสดง Modal สำหรับวันที่
+            } else if (isAuthenticated === "false") { // ตรวจสอบสถานะการเข้าสู่ระบบ
+                event.preventDefault(); // หยุดการส่งฟอร์ม
+                openLoginModal(); // แสดง Modal สำหรับ Login/Register
             }
         });
 
-        function closeModal() {
-            document.getElementById('dateModal').style.display = 'none'; // ปิด modal
-        }
+        // ปิด Modal วันที่
+        document.querySelector('#dateModal .close-btn').addEventListener('click', closeDateModal);
 
-        // ตรวจจับการคลิกนอก modal เพื่อปิด modal
-        document.getElementById('dateModal').addEventListener('click', function (event) {
+        // ปิด Modal Login/Register
+        document.getElementById('closeLoginModal').addEventListener('click', closeLoginModal);
+
+        // ปุ่ม Login
+        document.getElementById('loginBtn').addEventListener('click', () => {
+            window.location.href = "{% url 'login_page' %}"; // เปลี่ยน URL ไปยังหน้า Login
+        });
+
+        // ปุ่ม Register
+        document.getElementById('registerBtn').addEventListener('click', () => {
+            window.location.href = "{% url 'register_page' %}"; // เปลี่ยน URL ไปยังหน้า Register
+        });
+
+        // ปิด Modal Login เมื่อคลิกนอกเนื้อหา Modal
+        document.getElementById('loginModal').addEventListener('click', (event) => {
+            if (event.target === document.getElementById('loginModal')) {
+                closeLoginModal();
+            }
+        });
+
+        // ปิด Modal วันที่เมื่อคลิกนอกเนื้อหา Modal
+        document.getElementById('dateModal').addEventListener('click', (event) => {
             if (event.target === document.getElementById('dateModal')) {
-                closeModal(); // ปิด modal เมื่อคลิกนอก modal content
+                closeDateModal();
             }
         });
     </script>
+
+
+    <style>
+        .modal {
+            display: none;
+        }
+
+        .modal:not(.hidden) {
+            display: flex;
+        }
+
+        .modal-content {
+            width: 90%;
+            max-width: 400px;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: scale(0.95);
+            }
+
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+    </style>
+
 
 </body>
 

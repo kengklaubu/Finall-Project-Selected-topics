@@ -6,16 +6,78 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>รายละเอียดสถานที่จอดรถ</title>
+    <link href="{% static 'css/styles.css' %}" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f8f9fa;
+            margin: 0;
+            padding: 0;
+        }
 
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background-color: #333;
+            color: white;
+            padding: 10px 20px;
+        }
+
+        .header .logo {
+            display: flex;
+            align-items: center;
+        }
+
+        .header .logo img {
+            height: 40px;
+            margin-right: 10px;
+        }
+
+        .header .logo h1 {
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+
+        .header .nav-menu a {
+            color: white;
+            text-decoration: none;
+            margin-right: 15px;
+            font-size: 1rem;
+        }
+
+        .header .nav-menu a:hover {
+            text-decoration: underline;
+        }
+
+        .header .user-icon img {
+            height: 40px;
+            cursor: pointer;
+            border-radius: 50%;
+        }
+
+        .container {
+            padding: 20px;
+        }
+
+        .map-container {
+            margin-bottom: 20px;
+        }
+
+        .map-container img {
+            width: 100%;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+    </style>
 </head>
-<link href="{% static 'easypark/css/styles.css' %}" rel="stylesheet">
 
 <body>
-    {% load static %}
     <!-- Header Section -->
     <div class="header">
         <div class="logo">
-            <img src="{% static 'image/logo.png' %}" alt="Easy Parking Logo">
+            <img src="{% static 'easypark/image/logo.png' %}" alt="Easy Parking Logo">
             <h1>Easy Parking</h1>
         </div>
         <div class="nav-menu">
@@ -33,38 +95,42 @@
         <div class="map-container">
             <img src="{% static 'image/sc_parking_map.png' %}" alt="Parking Map">
         </div>
-
         <div class="map-container map">
             <img src="{% static 'easypark/image/spot_sc.png' %}" alt="Parking Map">
         </div>
+    </div>
 
-        <!-- Parking Layout Section -->
-        <div class="parking-layout">
-            <div id="spot-1" class="parking-spot" onclick="showSpotDetails(1)">1</div>
-            <div id="spot-2" class="parking-spot" onclick="showSpotDetails(2)">2</div>
-            <div id="spot-3" class="parking-spot" onclick="showSpotDetails(3)">3</div>
-            <div id="spot-4" class="parking-spot" onclick="showSpotDetails(4)">4</div>
-            <div id="spot-5" class="parking-spot" onclick="showSpotDetails(5)">5</div>
-            <div id="spot-6" class="parking-spot" onclick="showSpotDetails(6)">6</div>
-            <div id="spot-7" class="parking-spot" onclick="showSpotDetails(7)">7</div>
-            <div id="spot-8" class="parking-spot" onclick="showSpotDetails(8)">8</div>
-            <div id="spot-9" class="parking-spot" onclick="showSpotDetails(9)">9</div>
-            <div id="spot-10" class="parking-spot" onclick="showSpotDetails(10)">10</div>
-            <div id="spot-11" class="parking-spot" onclick="showSpotDetails(11)">11</div>
-            <div id="spot-12" class="parking-spot" onclick="showSpotDetails(12)">12</div>
-            <div id="spot-13" class="parking-spot" onclick="showSpotDetails(13)">13</div>
-            <div id="spot-14" class="parking-spot" onclick="showSpotDetails(14)">14</div>
-            <div id="spot-15" class="parking-spot" onclick="showSpotDetails(15)">15</div>
-            <div id="spot-16" class="parking-spot" onclick="showSpotDetails(16)">16</div>
-            <div id="spot-17" class="parking-spot" onclick="showSpotDetails(17)">17</div>
-            <div id="spot-18" class="parking-spot" onclick="showSpotDetails(18)">18</div>
-            <div id="spot-19" class="parking-spot" onclick="showSpotDetails(19)">19</div>
-            <div id="spot-20" class="parking-spot" onclick="showSpotDetails(20)">20</div>
-            <div id="spot-21" class="parking-spot" onclick="showSpotDetails(21)">21</div>
-            <div id="spot-22" class="parking-spot" onclick="showSpotDetails(22)">22</div>
-            <div id="spot-23" class="parking-spot" onclick="showSpotDetails(23)">23</div>
-            <div id="spot-24" class="parking-spot" onclick="showSpotDetails(24)">24</div>
-        </div>
+
+
+
+
+    <!-- Parking Layout Section -->
+    <div class="parking-layout">
+        <div id="spot-1" class="parking-spot" onclick="showSpotDetails(1)">1</div>
+        <div id="spot-2" class="parking-spot" onclick="showSpotDetails(2)">2</div>
+        <div id="spot-3" class="parking-spot" onclick="showSpotDetails(3)">3</div>
+        <div id="spot-4" class="parking-spot" onclick="showSpotDetails(4)">4</div>
+        <div id="spot-5" class="parking-spot" onclick="showSpotDetails(5)">5</div>
+        <div id="spot-6" class="parking-spot" onclick="showSpotDetails(6)">6</div>
+        <div id="spot-7" class="parking-spot" onclick="showSpotDetails(7)">7</div>
+        <div id="spot-8" class="parking-spot" onclick="showSpotDetails(8)">8</div>
+        <div id="spot-9" class="parking-spot" onclick="showSpotDetails(9)">9</div>
+        <div id="spot-10" class="parking-spot" onclick="showSpotDetails(10)">10</div>
+        <div id="spot-11" class="parking-spot" onclick="showSpotDetails(11)">11</div>
+        <div id="spot-12" class="parking-spot" onclick="showSpotDetails(12)">12</div>
+        <div id="spot-13" class="parking-spot" onclick="showSpotDetails(13)">13</div>
+        <div id="spot-14" class="parking-spot" onclick="showSpotDetails(14)">14</div>
+        <div id="spot-15" class="parking-spot" onclick="showSpotDetails(15)">15</div>
+        <div id="spot-16" class="parking-spot" onclick="showSpotDetails(16)">16</div>
+        <div id="spot-17" class="parking-spot" onclick="showSpotDetails(17)">17</div>
+        <div id="spot-18" class="parking-spot" onclick="showSpotDetails(18)">18</div>
+        <div id="spot-19" class="parking-spot" onclick="showSpotDetails(19)">19</div>
+        <div id="spot-20" class="parking-spot" onclick="showSpotDetails(20)">20</div>
+        <div id="spot-21" class="parking-spot" onclick="showSpotDetails(21)">21</div>
+        <div id="spot-22" class="parking-spot" onclick="showSpotDetails(22)">22</div>
+        <div id="spot-23" class="parking-spot" onclick="showSpotDetails(23)">23</div>
+        <div id="spot-24" class="parking-spot" onclick="showSpotDetails(24)">24</div>
+    </div>
     </div>
     <style>
         .container {
