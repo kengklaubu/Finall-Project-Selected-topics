@@ -6,7 +6,6 @@ import os
 from django.conf import settings
 
 def get_sheet_data():
-    # ระบุพาธของไฟล์ CSV ในโปรเจค
     file_path = os.path.join(settings.BASE_DIR, 'static', 'data', 'parking_data.csv')  # ตัวอย่างที่เก็บไฟล์ใน static/data/
     
     data = []
@@ -21,32 +20,85 @@ def get_sheet_data():
     
     return data
 
-from django.shortcuts import render
+from django.contrib.auth import authenticate, login
+from django.shortcuts import render, redirect
 
 def login_page(request):
-    return render(request, 'easypark/login.html')  # ชี้ไปยังไฟล์ login.html
+    if request.method == 'POST':
+        username = request.POST['username']
+        password = request.POST['password']
+        user = authenticate(request, username=username, password=password)
+
+        if user :
+            print(user.role)  # เพิ่มบรรทัดนี้เพื่อเช็คว่า role ของผู้ใช้ถูกต้อง
+            login(request, user)
+            if user.role == 'admin':
+                return redirect('admin_dashboard')
+            elif user.role == 'manager':
+                return redirect('manager_dashboard')
+            else:
+                return redirect('user_dashboard')
+        else:
+            return render(request, 'easypark/login.html', {'error': 'Invalid login credentials'})
+
+    return render(request, 'easypark/login.html')
+
+
 
 
 from django.shortcuts import render, redirect
-from django.contrib.auth.models import User
-from django.contrib import messages
 from .forms import RegisterForm
+from django.contrib.auth import login
+from .models import CustomUser  
 
 def register_page(request):
     if request.method == 'POST':
         form = RegisterForm(request.POST)
         if form.is_valid():
-            user = form.save(commit=False)
-            user.set_password(form.cleaned_data['password'])
-            user.save()
-            messages.success(request, "Account created successfully!")
-            return redirect('login_page')  # Redirect ไปหน้า Login หลังสมัครเสร็จ
-        else:
-            messages.error(request, "Please correct the errors below.")
+            user = form.save(commit=False)  
+            user.set_password(form.cleaned_data['password'])  
+            user.save()  
+            login(request, user)  
+            return redirect('homepage')  
     else:
         form = RegisterForm()
     
     return render(request, 'easypark/register.html', {'form': form})
+
+
+
+from django.contrib.auth.decorators import login_required, user_passes_test
+from django.shortcuts import render
+
+# ฟังก์ชันนี้ใช้ตรวจสอบบทบาท
+def is_admin(user):
+    return user.role == 'admin'
+
+
+# ฟังก์ชันนี้จะทำให้แค่แอดมินสามารถเข้าใช้งาน
+from django.contrib.auth.decorators import login_required
+@login_required
+@user_passes_test(is_admin)
+@login_required
+def admin_dashboard(request):
+    return render(request, 'easypark/admin_dashboard.html')
+
+# หน้าแดชบอร์ดของผู้จัดการ (Manager)
+@login_required
+def manager_dashboard(request):
+    return render(request, 'easypark/manager_dashboard.html')
+
+
+from django.shortcuts import render, get_object_or_404
+from .models import ParkingLocation
+
+def locations_page(request):
+    return render(request, 'easypark/locations.html')
+
+def parking_location(request, location_slug):
+    location = get_object_or_404(ParkingLocation, slug=location_slug)
+    spots = location.parking_spots.all() 
+    return render(request, 'easypark/parking_location.html', {'location': location, 'spots': spots})
 
 
 
@@ -57,59 +109,109 @@ from django.contrib.auth.decorators import login_required
 def profile_page(request):
     return render(request, 'easypark/profile.html', {'user': request.user})
 
+from django.shortcuts import render
+from easypark.models import Reservation
+
+
+def reservation_history(request):
+    # ดึงประวัติการจอง
+    reservations = Reservation.objects.select_related('location', 'parking_spot').filter(user=request.user)
+    return render(request, 'easypark/reservation_history.html', {'reservations': reservations})
+
+
+from django.contrib.auth.decorators import login_required
+from django.http import HttpResponseForbidden
+
+@login_required
+def view_reservation_history(request):
+    if request.user.role != 'admin':
+        return HttpResponseForbidden("คุณไม่มีสิทธิ์เข้าถึงหน้านี้")
+    # Logic สำหรับผู้ดูแลระบบ
+
+
+from django.shortcuts import render
+from django.http import HttpResponseForbidden
+
+def manage_parking_spots(request):
+    if request.user.role != 'manager':
+        return HttpResponseForbidden("คุณไม่มีสิทธิ์จัดการที่จอดรถ")
+    # Logic สำหรับเจ้าของร้าน (สถานที่)
+    return render(request, 'manage_parking_spots.html')
 
 
 
+
+#ดึงข้อมูลทั้งหมด
+#from django.shortcuts import render
+#from .models import Reservation
+#def reservation_history(request):
+    # ตรวจสอบว่า Query ครบทุกข้อมูลในตาราง Reservation
+    #reservations = Reservation.objects.select_related('location').all()
+    #return render(request, 'reservation_history.html', {'reservations': reservations})
+
+
+
+
+
+    
+from django.contrib.auth import logout
+from django.shortcuts import redirect
+
+def logout_view(request):
+    logout(request)
+    return redirect('login_page')
+
+# easypark/views.py
+
+from django.shortcuts import render
+
+def password_reset(request):
+    # แสดงหน้า password reset
+    return render(request, 'easypark/password_reset1221.html')
+
+
+
+
+
+from django.contrib.auth.decorators import login_required
+from django.shortcuts import render, redirect
 import os
 import csv
 from django.conf import settings
-from django.shortcuts import render
 
 def homepage(request):
     # เส้นทางไฟล์ CSV ในโฟลเดอร์ static
     file_path = os.path.join(settings.BASE_DIR, 'static/data/data_10.csv')
-    
+   
     locations = []
-    if os.path.exists(file_path):  # ตรวจสอบว่าไฟล์มีอยู่
+    if os.path.exists(file_path): 
         with open(file_path, 'r', encoding='utf-8') as file:
             reader = csv.reader(file)
-            next(reader, None)  # ข้าม header
+            next(reader, None)  
             for row in reader:
                 locations.append(row[0])
     else:
         print("ไฟล์ CSV ไม่พบในโปรเจค")
 
-    context = {
-        'locations': locations,
-    }
-    return render(request, 'easypark/home.html', context)
+    # ถ้า user ยังไม่ได้ล็อกอิน ก็แสดงหน้า homepage แบบปกติ
+    if request.user.is_authenticated:
+        # ตรวจสอบ role ของผู้ใช้ที่ล็อกอิน
+        if request.user.role == 'admin':
+            return redirect('admin_dashboard')  # เปลี่ยนไปหน้าแดชบอร์ดของแอดมิน
+        elif request.user.role == 'manager':
+            return redirect('manager_dashboard')  # เปลี่ยนไปหน้าแดชบอร์ดของผู้จัดการ
+        else:
+            return render(request, 'easypark/home.html', {'locations': locations})  # สำหรับผู้ใช้ทั่วไป
+    else:
+        # ถ้าผู้ใช้ไม่ได้ล็อกอิน ก็ให้แสดงหน้า homepage
+        return render(request, 'easypark/home.html', {'locations': locations})
 
 
-
-from django.shortcuts import render
-from .models import ParkingSpot
-from django.contrib.auth.decorators import login_required
-from django.shortcuts import render
-@login_required
-def parking_location(request, location, date):
-    # ตรวจสอบว่า location และ date ถูกต้อง
-    if not location or not date:
-        return render(request, 'easypark/error.html', {'message': 'ข้อมูลที่คุณส่งมาไม่ถูกต้อง'})
-
-    # ค้นหาที่จอดรถจากฐานข้อมูลตาม location และ date
-    parking_spots = ParkingSpot.objects.filter(location=location, date=date)
     
-    # ถ้าไม่พบที่จอดรถ
-    if not parking_spots.exists():
-        return render(request, 'easypark/error.html', {'message': 'ไม่พบที่จอดรถที่ตรงกับข้อมูลที่ค้นหา'})
-    
-    context = {
-        'parking_spots': parking_spots,
-        'location': location,
-        'date': date,
-    }
-    
-    return render(request, 'easypark/parking_location.html', context)
+
+
+
+
 
 
 
@@ -236,22 +338,22 @@ def redirect_parking(request):
         return redirect('hospital_parking', date=date)
     elif location == 'ตึกวิจัย':
         return redirect('sc_parking', date=date)
-    elif location == 'ลานจอด C':
-        return redirect('parking_c', date=date)
-    elif location == 'ลานจอด D':
-        return redirect('parking_d', date=date)
-    elif location == 'ลานจอด E':
-        return redirect('parking_e', date=date)
-    elif location == 'ลานจอด F':
-        return redirect('parking_f', date=date)
-    elif location == 'ลานจอด G':
-        return redirect('parking_g', date=date)
-    elif location == 'ลานจอด H':
-        return redirect('parking_h', date=date)
-    elif location == 'ลานจอด I':
-        return redirect('parking_i', date=date)
-    elif location == 'ลานจอด J':
-        return redirect('parking_j', date=date)
+    elif location == 'อาคารเรียนรวม 4':
+        return redirect('CLB_4', date=date)
+    elif location == 'อาคารเรียนรวม 5':
+        return redirect('CLB_5', date=date)
+    elif location == 'อาคารศิลปะศาสตร์':
+        return redirect('LA_Parking', date=date)
+    elif location == 'ตึกบริหาร':
+        return redirect('Bus_Parking', date=date)
+    elif location == 'อาคาร Co-work':
+        return redirect('Cowork_Parking', date=date)
+    elif location == 'ตึกเคมี':
+        return redirect('CHLAB_Parking', date=date)
+    elif location == 'ตึกพยาบาล':
+        return redirect('NU_Parking', date=date)
+    elif location == 'ตึกเภสัช':
+        return redirect('PH_Parking', date=date)
     else:
         return redirect('homepage')
 
@@ -280,85 +382,85 @@ def sc_parking(request, date):
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render
 @login_required
-def parking_c(request, date):
+def CLB_4(request, date):
     # นำข้อมูลที่จอดรถสำหรับลานจอด C มาแสดง
     context = {
         'date': date,
-        'location': 'ลานจอด C',
+        'location': 'อาคารเรียนรวม 4',
     }
-    return render(request, 'easypark/ABC_parking.html', context)
+    return render(request, 'easypark/CLB_4.html', context)
 
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render
 @login_required
-def parking_d(request, date):
+def CLB_5(request, date):
     context = {
         'date': date,
-        'location': 'ลานจอด D',
+        'location': 'อาคารเรียนรวม 5',
     }
-    return render(request, 'easypark/ABC_parking.html', context)
+    return render(request, 'easypark/CLB_5.html', context)
 
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render
 @login_required
-def parking_e(request, date):
+def LA_Parking(request, date):
     context = {
         'date': date,
-        'location': 'ลานจอด E',
+        'location': 'อาคารศิลปะศาสตร์',
     }
-    return render(request, 'easypark/ABC_parking.html', context)
+    return render(request, 'easypark/LA_Parking.html', context)
 
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render
 @login_required
-def parking_f(request, date):
+def Bus_Parking(request, date):
     context = {
         'date': date,
-        'location': 'ลานจอด F',
+        'location': 'ตึกบริหาร',
     }
-    return render(request, 'easypark/ABC_parking.html', context)
+    return render(request, 'easypark/Bus_Parking.html', context)
 
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render
 @login_required
-def parking_g(request, date):
+def Cowork_Parking(request, date):
     context = {
         'date': date,
-        'location': 'ลานจอด G',
+        'location': 'อาคาร Co-work',
     }
-    return render(request, 'easypark/ABC_parking.html', context)
+    return render(request, 'easypark/Cowork_Parking.html', context)
 
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render
 @login_required
-def parking_h(request, date):
+def CHLAB_Parking(request, date):
     context = {
         'date': date,
-        'location': 'ลานจอด H',
+        'location': 'ตึกเคมี',
     }
-    return render(request, 'easypark/ABC_parking.html', context)
+    return render(request, 'easypark/CHLAB_Parking.html', context)
 
 
 
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render
 @login_required
-def parking_i(request, date):
+def NU_Parking(request, date):
     context = {
         'date': date,
-        'location': 'ลานจอด I',
+        'location': 'ตึกพยาบาล',
     }
-    return render(request, 'easypark/ABC_parking.html', context)
+    return render(request, 'easypark/NU_Parking.html', context)
 
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render
 @login_required
-def parking_j(request, date):
+def PH_Parking(request, date):
     context = {
         'date': date,
-        'location': 'ลานจอด J',
+        'location': 'ตึกเภสัช',
     }
-    return render(request, 'easypark/ABC_parking.html', context)
+    return render(request, 'easypark/PH_Parking.html', context)
 
 
 

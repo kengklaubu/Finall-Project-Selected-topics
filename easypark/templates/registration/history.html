@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reservation History</title>
+</head>
+<body>
+    <h1>ประวัติการจอง</h1>
+    <table>
+        <thead>
+            <tr>
+                <th>ช่องที่จอด</th>
+                <th>สถานที่</th>
+                <th>วันที่จอง</th>
+                <th>เวลา</th>
+                <th>สร้างเมื่อ</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for reservation in reservations %}
+            <tr>
+                <td>{{ reservation.parking_spot }}</td>
+                <td>{{ reservation.location }}</td>
+                <td>{{ reservation.reservation_date }}</td>
+                <td>{{ reservation.reservation_time }}</td>
+                <td>{{ reservation.created_at }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</body>
+</html>

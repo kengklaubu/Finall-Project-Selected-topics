@@ -29,9 +29,35 @@ ALLOWED_HOSTS = []
 
 APPEND_SLASH = False
 
-LOGIN_REDIRECT_URL = 'profile'  # เปลี่ยนเส้นทางไปหน้าโปรไฟล์
+LOGIN_REDIRECT_URL = 'homepage'  # เปลี่ยนเส้นทางไปหน้าโปรไฟล์
 LOGOUT_REDIRECT_URL = 'homepage'  # Redirect ไปหน้าแรกหลังออกจากระบบ
 LOGIN_URL = 'login'  # URL ของหน้า login
+
+
+# Session Settings
+#SESSION_COOKIE_AGE = 1800  # 30 นาที
+SESSION_EXPIRE_AT_BROWSER_CLOSE = True # หมดอายุเมื่อปิดเบราว์เซอร์
+#SESSION_SAVE_EVERY_REQUEST = True  # รีเฟรชเวลาหมดอายุเมื่อมีการร้องขอใหม่
+#SESSION_COOKIE_AGE = 10  # 10 วินาที
+#SESSION_ENGINE = 'django.contrib.sessions.backends.file'
+
+
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = 'forgetd69@gmail.com'
+EMAIL_HOST_PASSWORD = 'dpca bzth hhsw xvda'
+DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+
+PASSWORD_RESET_TIMEOUT_DAYS = 1  # กำหนดให้ลิงก์หมดอายุใน 1 วัน
+
+
+AUTH_USER_MODEL = 'easypark.CustomUser'
+
+
+
+
 
 
 

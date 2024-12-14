@@ -1,11 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ลานจอด ABC</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
+
 <body class="bg-gray-100">
 
     <div class="container mx-auto p-4">
@@ -20,6 +22,34 @@
             {% endfor %}
         </div>
     </div>
+    <table>
+        <thead>
+            <tr>
+                <th>วันที่จอง</th>
+                <th>เวลาที่เริ่ม</th>
+                <th>เวลาสิ้นสุด</th>
+                <th>สถานที่</th>
+                <th>สถานะ</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for reservation in reservations %}
+            <tr>
+                <td>{{ reservation.reservation_date }}</td>
+                <td>{{ reservation.reservation_start_time }}</td>
+                <td>{{ reservation.reservation_end_time }}</td>
+                <td>{{ reservation.location.name }}</td> <!-- ชื่อสถานที่ -->
+                <td>{{ reservation.status }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <a href="{% url 'reservation_history' %}">จองที่จอด</a>
+    <a href="{% url 'reservation_history' %}">จองที่จอด</a>
+
+
+
 
 </body>
+
 </html>

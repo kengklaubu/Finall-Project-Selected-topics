@@ -1,55 +1,43 @@
+<!-- easypark/parking_location.html -->
 <!DOCTYPE html>
 <html lang="th">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Parking Location</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <title>{{ location.name }} - ที่จอดรถ</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.0.3/dist/tailwind.min.css" rel="stylesheet">
 </head>
+<body>
+    <div class="container mx-auto p-4">
+        <h1 class="text-3xl font-semibold text-center mb-6">ที่จอดรถที่ {{ location.name }}</h1>
 
-<body class="bg-gray-100">
-    <!-- Header -->
-    <div class="bg-gray-800 text-white p-4 flex justify-between items-center">
-        <div class="flex items-center">
-            <img src="{% static 'image/logo.png' %}" alt="Easy Parking Logo" class="h-12 w-12">
-            <h1 class="ml-4 text-2xl font-bold">Easy Parking</h1>
+        <div class="bg-white shadow-md rounded-lg p-4">
+            <h2 class="text-xl font-medium mb-4">ข้อมูลสถานที่</h2>
+            <p class="mb-2"><strong>ชื่อสถานที่:</strong> {{ location.name }}</p>
+            <p class="mb-2"><strong>คำอธิบาย:</strong> {{ location.description }}</p>
+
+            <h3 class="text-lg font-medium mt-6 mb-4">ที่จอดรถใน {{ location.name }}</h3>
+            <ul class="space-y-4">
+                {% for spot in spots %}
+                    <li class="p-4 border rounded-lg shadow-md bg-gray-50">
+                        <div class="flex justify-between items-center">
+                            <span class="font-medium">ช่องที่จอด: {{ spot.spot_number }}</span>
+                            <span class="text-sm text-gray-500">สถานะ: {% if spot.is_available %}ว่าง{% else %}เต็ม{% endif %}</span>
+                        </div>
+                        {% if spot.reserved_by %}
+                            <p class="mt-2 text-sm text-gray-500">จองโดย: {{ spot.reserved_by.username }}</p>
+                            <p class="text-sm text-gray-500">ทะเบียนรถ: {{ spot.license_plate }}</p>
+                        {% endif %}
+                    </li>
+                {% empty %}
+                    <li>ไม่มีที่จอดรถในสถานที่นี้</li>
+                {% endfor %}
+            </ul>
         </div>
-        <nav class="flex space-x-4">
-            <a href="{% url 'homepage' %}" class="text-lg">หน้าหลัก</a>
-            <a href="#" class="text-lg">แผนที่</a>
-        </nav>
-        <img src="{% static 'image/user_1.png' %}" alt="User Icon" class="h-10 w-10">
-    </div>
-
-    <!-- Main Content -->
-    <div class="container mx-auto mt-8 p-4">
-        <div class="bg-white p-6 rounded-lg shadow-lg">
-            <h2 class="text-xl font-semibold mb-4">คุณเลือก: ช่องจอดรถที่ {{ spot_number }}</h2>
-
-            <div class="grid grid-cols-2 gap-4 mb-6">
-                <div>
-                    <p class="text-lg font-semibold">สถานที่:</p>
-                    <div class="p-3 bg-gray-200 rounded-md">โรงพยาบาล</div>
-                </div>
-                <div>
-                    <p class="text-lg font-semibold">สถานะที่:</p>
-                    <div class="p-3 bg-gray-200 rounded-md">ว่าง</div>
-                </div>
-            </div>
-
-            <div class="bg-gray-100 p-4 rounded-lg mb-6">
-                <p class="text-gray-700 font-semibold">*หมายเหตุ :</p>
-                <p class="text-gray-600">ผู้ใช้ต้องเข้ามาจอดในเวลาที่กำหนด ห้ามมาสายกว่าที่ระบบกำหนด</p>
-                <p class="text-gray-600">หากผู้ใช้มาสายระบบจะทำการปล่อยยกเลิกการจองอัตโนมัติ</p>
-            </div>
-
-            <div class="flex justify-between items-center">
-                <button class="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition">ย้อนกลับ</button>
-                <button class="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition">จอง</button>
-            </div>
+        
+        <div class="mt-6 text-center">
+            <a href="{% url 'locations' %}" class="text-blue-600 hover:underline">กลับไปยังหน้าสถานที่ทั้งหมด</a>
         </div>
     </div>
 </body>
-
 </html>
