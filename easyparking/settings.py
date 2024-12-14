@@ -64,7 +64,6 @@ AUTH_USER_MODEL = 'easypark.CustomUser'
 # Application definition
 
 INSTALLED_APPS = [
-    "channels",
     "easypark",
     "django.contrib.admin",
     "django.contrib.auth",
