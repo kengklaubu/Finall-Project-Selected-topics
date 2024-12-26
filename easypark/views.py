@@ -84,9 +84,95 @@ def admin_dashboard(request):
     return render(request, 'easypark/admin_dashboard.html')
 
 # หน้าแดชบอร์ดของผู้จัดการ (Manager)
+from django.shortcuts import render, redirect
+from django.contrib.auth.decorators import login_required
+from easypark.models import Reservation, ParkingSpot, CustomUser
+
+from django.shortcuts import render, redirect
+from django.contrib.auth.decorators import login_required
+from .models import ParkingLocation, Reservation
+
 @login_required
 def manager_dashboard(request):
-    return render(request, 'easypark/manager_dashboard.html')
+    # ตรวจสอบว่าเป็น Manager
+    if request.user.role != 'manager':
+        return redirect('homepage')  # ถ้าไม่ใช่ Manager ให้กลับไปหน้า Homepage
+
+    # ดึงข้อมูลสถานที่ทั้งหมด
+    locations = ParkingLocation.objects.all()
+    
+    # ดึงข้อมูลการจองทั้งหมด โดยใช้ select_related เพื่อดึงข้อมูลที่เชื่อมโยงไปยัง CustomUser
+    reservations = Reservation.objects.select_related('parking_spot', 'user', 'parking_spot__location', 'parking_spot__reserved_by')
+
+    context = {
+        'locations': locations,
+        'reservations': reservations,
+    }
+    return render(request, 'easypark/manager_dashboard.html', context)
+
+
+
+
+@login_required
+def cancel_reservation(request, reservation_id):
+    # ตรวจสอบว่าเป็น Manager
+    if request.user.role != 'manager':
+        return redirect('homepage')
+
+    try:
+        reservation = Reservation.objects.get(id=reservation_id)
+        reservation.status = 'cancelled'  
+        reservation.save()
+        return redirect('manager_dashboard')  
+    except Reservation.DoesNotExist:
+        return redirect('manager_dashboard')  
+
+@login_required
+def suspend_parking_spot(request, spot_id):
+    if request.user.role != 'manager':
+        return redirect('homepage')
+
+    try:
+        parking_spot = ParkingSpot.objects.get(id=spot_id)
+        if parking_spot.is_available:
+            parking_spot.is_available = False  
+        else:
+            parking_spot.is_available = True
+        parking_spot.save()
+        
+        return redirect('manager_dashboard')  
+    except ParkingSpot.DoesNotExist:
+        return redirect('manager_dashboard')  
+
+
+
+from django.http import JsonResponse
+from .models import ParkingSpot
+
+def get_parking_spots(request, location_id):
+    # ค้นหาช่องจอดของสถานที่ที่เลือก
+    parking_spots = ParkingSpot.objects.filter(location_id=location_id)
+
+    spots_data = []
+    for spot in parking_spots:
+        reserved_by = spot.reserved_by.username if spot.reserved_by else 'None'
+        license_plate = spot.license_plate if spot.license_plate else 'N/A'
+        spots_data.append({
+            'spot_number': spot.spot_number,
+            'is_available': spot.is_available,
+            'reserved_by': reserved_by,
+            'license_plate': license_plate
+        })
+    
+    return JsonResponse({'parking_spots': spots_data})
+
+
+
+
+
+
+
+
 
 
 from django.shortcuts import render, get_object_or_404

@@ -5,16 +5,165 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Manager Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
 </head>
 
-<body>
-    <h1>Welcome, Manager!</h1>
-    <p>This is the manager dashboard.</p>
+<body class="bg-gray-100">
+    {% load static %}
+    <nav class="bg-gray-800 p-4">
+        <div class="flex items-center justify-between max-w-7xl mx-auto">
+            <!-- Logo (ด้านซ้ายสุด) -->
+            <div class="text-white font-bold text-xl">
+                <a href="/" class="flex items-center">
+                    <img src="{% static 'easypark/image/logo.png' %}" alt="Easy Parking Logo" class="h-8 mr-2">
+                    EasyPark
+                </a>
+            </div>
 
-    <form action="{% url 'logout' %}" method="post">
-        {% csrf_token %}
-        <button type="submit" class="btn btn-danger">Logout</button>
-    </form>
+            <!-- Profile (ด้านขวาสุด) -->
+            <div class="flex items-center space-x-4">
+                <span class="text-white">{{ request.user.username }}</span> <!-- แสดงชื่อผู้ใช้ -->
+                <a href="/profile" class="text-white">Profile</a>
+                <form action="{% url 'logout' %}" method="post">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger">Logout</button>
+                </form>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mx-auto p-8 bg-white rounded-lg shadow-lg">
+        <h1 class="text-3xl font-bold text-center mb-6">Manager Dashboard</h1>
+
+        <!-- Reservation List -->
+        <h2 class="text-xl font-semibold mb-4">User Reservations</h2>
+        <table class="min-w-full table-auto border-collapse">
+            <thead>
+                <tr>
+                    <th class="border px-4 py-2">Reservation ID</th>
+                    <th class="border px-4 py-2">User</th>
+                    <th class="border px-4 py-2">Parking Spot</th>
+                    <th class="border px-4 py-2">Status</th>
+                    <th class="border px-4 py-2">Location</th>
+                    <th class="border px-4 py-2">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for reservation in reservations %}
+                <tr>
+                    <td class="border px-4 py-2">{{ reservation.id }}</td>
+                    <td class="border px-4 py-2">{{ reservation.user.username }}</td>
+                    <td class="border px-4 py-2">{{ reservation.parking_spot.spot_number }}</td>
+                    <td class="border px-4 py-2">{{ reservation.status }}</td>
+                    <td class="border px-4 py-2">{{ reservation.parking_spot.location.name }}</td>
+                    <td class="border px-4 py-2">
+                        <a href="{% url 'cancel_reservation' reservation.id %}"
+                            class="text-red-500 hover:underline">Cancel</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <!-- Parking Spot List -->
+        <div class="container mx-auto p-4">
+            <h2 class="text-xl font-semibold mt-8 mb-4">Parking Spots</h2>
+            <div class="mb-4">
+                <label for="location" class="block text-sm font-medium text-gray-700">Select Location:</label>
+                <select id="location" class="form-select block w-full mt-1 p-2 border border-gray-300 rounded-md">
+                    <option value="">Select a location</option>
+                    {% for location in locations %}
+                    <option value="{{ location.id }}">{{ location.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Table for Showing Parking Spots -->
+            <!-- Parking Spot List -->
+            <!-- Table for Showing Parking Spots -->
+            <!-- Table for Showing Parking Spots -->
+            <table class="min-w-full table-auto border-collapse">
+                <thead>
+                    <tr>
+                        <th class="border px-4 py-2">Spot Number</th>
+                        <th class="border px-4 py-2">Availability</th>
+                        <th class="border px-4 py-2">Reserved By</th>
+                        <th class="border px-4 py-2">License Plate</th>
+                        <th class="border px-4 py-2">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="parking-spot-body">
+                    {% for spot in parking_spots %}
+                    <tr>
+                        <td class="border px-4 py-2">{{ spot.spot_number }}</td>
+                        <td class="border px-4 py-2">{{ spot.is_available|yesno:"Available,Unavailable" }}</td>
+                        <td class="border px-4 py-2">
+                            {% if spot.reserved_by %}
+                            {{ spot.reserved_by.username }} <!-- แสดง username -->
+                            {% else %}
+                            None
+                            {% endif %}
+                        </td>
+
+                        <td class="border px-4 py-2">
+                            {% if spot.license_plate %}
+                            {{ spot.license_plate }}
+                            {% else %}
+                            N/A
+                            {% endif %}
+                        </td>
+                        <td class="border px-4 py-2">
+                            <a href="{% url 'suspend_parking_spot' spot.id %}"
+                                class="text-blue-500 hover:underline">Suspend</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+
+
+
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('location').addEventListener('change', function () {
+            const locationId = this.value;
+
+            if (locationId) {
+                fetch(`/get_parking_spots/${locationId}/`)
+                    .then(response => response.json())
+                    .then(data => {
+                        const tbody = document.getElementById('parking-spot-body');
+                        tbody.innerHTML = '';  // Clear previous data
+
+                        // Check if parking_spots exists in the response
+                        if (data.parking_spots && data.parking_spots.length > 0) {
+                            data.parking_spots.forEach(spot => {
+                                const tr = document.createElement('tr');
+                                tr.innerHTML = `
+                            <td class="border px-4 py-2">${spot.spot_number}</td>
+                            <td class="border px-4 py-2">${spot.is_available ? 'Available' : 'Unavailable'}</td>
+                            <td class="border px-4 py-2">${spot.reserved_by}</td>
+                            <td class="border px-4 py-2">${spot.license_plate}</td>
+                            <td class="border px-4 py-2">
+                                <a href="/suspend_parking_spot/${spot.id}/" class="text-blue-500 hover:underline">Suspend</a>
+                            </td>
+                        `;
+                                tbody.appendChild(tr);
+                            });
+                        } else {
+                            tbody.innerHTML = `<tr><td colspan="5" class="text-center">No parking spots available.</td></tr>`;
+                        }
+                    })
+                    .catch(error => console.error('Error fetching parking spots:', error));
+            } else {
+                document.getElementById('parking-spot-body').innerHTML = '';
+            }
+        });
+
+    </script>
+
 </body>
 
 </html>
