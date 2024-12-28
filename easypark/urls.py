@@ -36,8 +36,9 @@ urlpatterns = [
     path('admin_dashboard/', views.admin_dashboard, name='admin_dashboard'),  
     path('manager_dashboard/', views.manager_dashboard, name='manager_dashboard'),
     path('manager/reservation/cancel/<int:reservation_id>/', views.cancel_reservation, name='cancel_reservation'),
-    path('manager/parking/suspend/<int:spot_id>/', views.suspend_parking_spot, name='suspend_parking_spot'),
+    #path('manager/parking/suspend/<int:spot_id>/', views.suspend_parking_spot, name='suspend_parking_spot'),
     path('get_parking_spots/<int:location_id>/', views.get_parking_spots, name='get_parking_spots'),
+    path('suspend_parking_spot/<int:spot_id>/', views.suspend_parking_spot, name='suspend_parking_spot'),
     
 
 

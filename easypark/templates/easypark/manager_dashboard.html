@@ -127,42 +127,106 @@
     </div>
 
     <script>
-        document.getElementById('location').addEventListener('change', function () {
-            const locationId = this.value;
+        document.addEventListener('DOMContentLoaded', function () {
+            const locationDropdown = document.getElementById('location');
+            const tbody = document.getElementById('parking-spot-body');
 
-            if (locationId) {
+            // เมื่อเลือกสถานที่จาก dropdown
+            locationDropdown.addEventListener('change', function () {
+                const locationId = this.value;
+
+                if (locationId) {
+                    fetchParkingSpots(locationId);
+                } else {
+                    tbody.innerHTML = '';
+                }
+            });
+
+            function fetchParkingSpots(locationId) {
                 fetch(`/get_parking_spots/${locationId}/`)
                     .then(response => response.json())
                     .then(data => {
-                        const tbody = document.getElementById('parking-spot-body');
-                        tbody.innerHTML = '';  // Clear previous data
-
-                        // Check if parking_spots exists in the response
+                        tbody.innerHTML = '';
                         if (data.parking_spots && data.parking_spots.length > 0) {
-                            data.parking_spots.forEach(spot => {
-                                const tr = document.createElement('tr');
-                                tr.innerHTML = `
-                            <td class="border px-4 py-2">${spot.spot_number}</td>
-                            <td class="border px-4 py-2">${spot.is_available ? 'Available' : 'Unavailable'}</td>
-                            <td class="border px-4 py-2">${spot.reserved_by}</td>
-                            <td class="border px-4 py-2">${spot.license_plate}</td>
-                            <td class="border px-4 py-2">
-                                <a href="/suspend_parking_spot/${spot.id}/" class="text-blue-500 hover:underline">Suspend</a>
-                            </td>
-                        `;
-                                tbody.appendChild(tr);
-                            });
+                            data.parking_spots.forEach(spot => appendParkingSpotRow(spot));
                         } else {
                             tbody.innerHTML = `<tr><td colspan="5" class="text-center">No parking spots available.</td></tr>`;
                         }
                     })
                     .catch(error => console.error('Error fetching parking spots:', error));
-            } else {
-                document.getElementById('parking-spot-body').innerHTML = '';
+            }
+
+            function appendParkingSpotRow(spot) {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+            <td class="border px-4 py-2">${spot.spot_number}</td>
+            <td class="border px-4 py-2">${spot.is_available ? 'Available' : 'Unavailable'}</td>
+            <td class="border px-4 py-2">${spot.reserved_by || 'None'}</td>
+            <td class="border px-4 py-2">${spot.license_plate || 'N/A'}</td>
+            <td class="border px-4 py-2">
+                <button class="text-blue-500 hover:underline suspend-btn" 
+                        data-spot-id="${spot.id}" 
+                        data-action="${spot.is_available ? 'suspend' : 'restore'}">
+                    ${spot.is_available ? 'Suspend' : 'Restore'}
+                </button>
+            </td>
+        `;
+                tbody.appendChild(tr);
+            }
+
+            // ใช้ Event Delegation กับ tbody
+            tbody.addEventListener('click', function (e) {
+                if (e.target.classList.contains('suspend-btn')) {
+                    e.preventDefault();
+
+                    const button = e.target;
+                    const spotId = button.getAttribute('data-spot-id');
+                    const action = button.getAttribute('data-action');
+
+                    suspendRestoreSpot(spotId, action, button);
+                }
+            });
+
+            function suspendRestoreSpot(spotId, action, button) {
+                fetch(`/suspend_parking_spot/${spotId}/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                    },
+                    body: JSON.stringify({ action, spot_id: spotId })
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            // อัปเดต UI ตามสถานะที่เปลี่ยน
+                            const row = button.closest('tr');
+                            const statusCell = row.querySelector('td:nth-child(2)');
+                            const actionCell = row.querySelector('td:nth-child(5)');
+
+                            if (data.is_available) {
+                                statusCell.textContent = 'Available';
+                                button.textContent = 'Suspend';
+                                button.setAttribute('data-action', 'suspend');
+                            } else {
+                                statusCell.textContent = 'Unavailable';
+                                button.textContent = 'Restore';
+                                button.setAttribute('data-action', 'restore');
+                            }
+                        } else {
+                            console.error('Failed to update parking spot status:', data.message);
+                        }
+                    })
+                    .catch(error => console.error('Error:', error));
             }
         });
 
     </script>
+
+
+
+
+
 
 </body>
 

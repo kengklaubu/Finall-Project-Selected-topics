@@ -126,23 +126,49 @@ def cancel_reservation(request, reservation_id):
         return redirect('manager_dashboard')  
     except Reservation.DoesNotExist:
         return redirect('manager_dashboard')  
+    
+
+
+from django.http import JsonResponse
+from django.shortcuts import redirect
+from django.contrib.auth.decorators import login_required
+from .models import ParkingSpot
+
+from django.http import JsonResponse
+from django.contrib.auth.decorators import login_required
+from .models import ParkingSpot
 
 @login_required
 def suspend_parking_spot(request, spot_id):
+    # ตรวจสอบว่า user มีสิทธิ์เป็น 'manager'
     if request.user.role != 'manager':
-        return redirect('homepage')
+        return JsonResponse({'success': False, 'message': 'Access Denied'}, status=403)
 
     try:
+        # ดึงข้อมูลช่องจอดที่ตรงกับ spot_id
         parking_spot = ParkingSpot.objects.get(id=spot_id)
-        if parking_spot.is_available:
-            parking_spot.is_available = False  
-        else:
-            parking_spot.is_available = True
+
+        # สลับสถานะความพร้อมใช้งานของช่องจอด
+        parking_spot.is_available = not parking_spot.is_available
         parking_spot.save()
-        
-        return redirect('manager_dashboard')  
+
+        # ส่งผลลัพธ์กลับในรูปแบบ JSON
+        return JsonResponse({
+            'success': True,
+            'is_available': parking_spot.is_available
+        })
     except ParkingSpot.DoesNotExist:
-        return redirect('manager_dashboard')  
+        # หากไม่พบช่องจอด
+        return JsonResponse({'success': False, 'message': 'Parking spot not found'}, status=404)
+    except Exception as e:
+        # จัดการข้อผิดพลาดอื่น ๆ
+        return JsonResponse({'success': False, 'message': str(e)}, status=500)
+
+
+
+
+
+
 
 
 
@@ -150,7 +176,6 @@ from django.http import JsonResponse
 from .models import ParkingSpot
 
 def get_parking_spots(request, location_id):
-    # ค้นหาช่องจอดของสถานที่ที่เลือก
     parking_spots = ParkingSpot.objects.filter(location_id=location_id)
 
     spots_data = []
@@ -161,10 +186,13 @@ def get_parking_spots(request, location_id):
             'spot_number': spot.spot_number,
             'is_available': spot.is_available,
             'reserved_by': reserved_by,
-            'license_plate': license_plate
+            'license_plate': license_plate,
+            'id': spot.id  # ทำให้มั่นใจว่า spot.id ถูกส่งมาด้วย
         })
     
     return JsonResponse({'parking_spots': spots_data})
+
+
 
 
 
