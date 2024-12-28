@@ -5,16 +5,229 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Manager Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
 </head>
 
-<body>
-    <h1>Welcome, Manager!</h1>
-    <p>This is the manager dashboard.</p>
+<body class="bg-gray-100">
+    {% load static %}
+    <nav class="bg-gray-800 p-4">
+        <div class="flex items-center justify-between max-w-7xl mx-auto">
+            <!-- Logo (ด้านซ้ายสุด) -->
+            <div class="text-white font-bold text-xl">
+                <a href="/" class="flex items-center">
+                    <img src="{% static 'easypark/image/logo.png' %}" alt="Easy Parking Logo" class="h-8 mr-2">
+                    EasyPark
+                </a>
+            </div>
 
-    <form action="{% url 'logout' %}" method="post">
-        {% csrf_token %}
-        <button type="submit" class="btn btn-danger">Logout</button>
-    </form>
+            <!-- Profile (ด้านขวาสุด) -->
+            <div class="flex items-center space-x-4">
+                <span class="text-white">{{ request.user.username }}</span> <!-- แสดงชื่อผู้ใช้ -->
+                <a href="/profile" class="text-white">Profile</a>
+                <form action="{% url 'logout' %}" method="post">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger">Logout</button>
+                </form>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mx-auto p-8 bg-white rounded-lg shadow-lg">
+        <h1 class="text-3xl font-bold text-center mb-6">Manager Dashboard</h1>
+
+        <!-- Reservation List -->
+        <h2 class="text-xl font-semibold mb-4">User Reservations</h2>
+        <table class="min-w-full table-auto border-collapse">
+            <thead>
+                <tr>
+                    <th class="border px-4 py-2">Reservation ID</th>
+                    <th class="border px-4 py-2">User</th>
+                    <th class="border px-4 py-2">Parking Spot</th>
+                    <th class="border px-4 py-2">Status</th>
+                    <th class="border px-4 py-2">Location</th>
+                    <th class="border px-4 py-2">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for reservation in reservations %}
+                <tr>
+                    <td class="border px-4 py-2">{{ reservation.id }}</td>
+                    <td class="border px-4 py-2">{{ reservation.user.username }}</td>
+                    <td class="border px-4 py-2">{{ reservation.parking_spot.spot_number }}</td>
+                    <td class="border px-4 py-2">{{ reservation.status }}</td>
+                    <td class="border px-4 py-2">{{ reservation.parking_spot.location.name }}</td>
+                    <td class="border px-4 py-2">
+                        <a href="{% url 'cancel_reservation' reservation.id %}"
+                            class="text-red-500 hover:underline">Cancel</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <!-- Parking Spot List -->
+        <div class="container mx-auto p-4">
+            <h2 class="text-xl font-semibold mt-8 mb-4">Parking Spots</h2>
+            <div class="mb-4">
+                <label for="location" class="block text-sm font-medium text-gray-700">Select Location:</label>
+                <select id="location" class="form-select block w-full mt-1 p-2 border border-gray-300 rounded-md">
+                    <option value="">Select a location</option>
+                    {% for location in locations %}
+                    <option value="{{ location.id }}">{{ location.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Table for Showing Parking Spots -->
+            <!-- Parking Spot List -->
+            <!-- Table for Showing Parking Spots -->
+            <!-- Table for Showing Parking Spots -->
+            <table class="min-w-full table-auto border-collapse">
+                <thead>
+                    <tr>
+                        <th class="border px-4 py-2">Spot Number</th>
+                        <th class="border px-4 py-2">Availability</th>
+                        <th class="border px-4 py-2">Reserved By</th>
+                        <th class="border px-4 py-2">License Plate</th>
+                        <th class="border px-4 py-2">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="parking-spot-body">
+                    {% for spot in parking_spots %}
+                    <tr>
+                        <td class="border px-4 py-2">{{ spot.spot_number }}</td>
+                        <td class="border px-4 py-2">{{ spot.is_available|yesno:"Available,Unavailable" }}</td>
+                        <td class="border px-4 py-2">
+                            {% if spot.reserved_by %}
+                            {{ spot.reserved_by.username }} <!-- แสดง username -->
+                            {% else %}
+                            None
+                            {% endif %}
+                        </td>
+
+                        <td class="border px-4 py-2">
+                            {% if spot.license_plate %}
+                            {{ spot.license_plate }}
+                            {% else %}
+                            N/A
+                            {% endif %}
+                        </td>
+                        <td class="border px-4 py-2">
+                            <a href="{% url 'suspend_parking_spot' spot.id %}"
+                                class="text-blue-500 hover:underline">Suspend</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+
+
+
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const locationDropdown = document.getElementById('location');
+            const tbody = document.getElementById('parking-spot-body');
+
+            // เมื่อเลือกสถานที่จาก dropdown
+            locationDropdown.addEventListener('change', function () {
+                const locationId = this.value;
+
+                if (locationId) {
+                    fetchParkingSpots(locationId);
+                } else {
+                    tbody.innerHTML = '';
+                }
+            });
+
+            function fetchParkingSpots(locationId) {
+                fetch(`/get_parking_spots/${locationId}/`)
+                    .then(response => response.json())
+                    .then(data => {
+                        tbody.innerHTML = '';
+                        if (data.parking_spots && data.parking_spots.length > 0) {
+                            data.parking_spots.forEach(spot => appendParkingSpotRow(spot));
+                        } else {
+                            tbody.innerHTML = `<tr><td colspan="5" class="text-center">No parking spots available.</td></tr>`;
+                        }
+                    })
+                    .catch(error => console.error('Error fetching parking spots:', error));
+            }
+
+            function appendParkingSpotRow(spot) {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+            <td class="border px-4 py-2">${spot.spot_number}</td>
+            <td class="border px-4 py-2">${spot.is_available ? 'Available' : 'Unavailable'}</td>
+            <td class="border px-4 py-2">${spot.reserved_by || 'None'}</td>
+            <td class="border px-4 py-2">${spot.license_plate || 'N/A'}</td>
+            <td class="border px-4 py-2">
+                <button class="text-blue-500 hover:underline suspend-btn" 
+                        data-spot-id="${spot.id}" 
+                        data-action="${spot.is_available ? 'suspend' : 'restore'}">
+                    ${spot.is_available ? 'Suspend' : 'Restore'}
+                </button>
+            </td>
+        `;
+                tbody.appendChild(tr);
+            }
+
+            // ใช้ Event Delegation กับ tbody
+            tbody.addEventListener('click', function (e) {
+                if (e.target.classList.contains('suspend-btn')) {
+                    e.preventDefault();
+
+                    const button = e.target;
+                    const spotId = button.getAttribute('data-spot-id');
+                    const action = button.getAttribute('data-action');
+
+                    suspendRestoreSpot(spotId, action, button);
+                }
+            });
+
+            function suspendRestoreSpot(spotId, action, button) {
+                fetch(`/suspend_parking_spot/${spotId}/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                    },
+                    body: JSON.stringify({ action, spot_id: spotId })
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            // อัปเดต UI ตามสถานะที่เปลี่ยน
+                            const row = button.closest('tr');
+                            const statusCell = row.querySelector('td:nth-child(2)');
+                            const actionCell = row.querySelector('td:nth-child(5)');
+
+                            if (data.is_available) {
+                                statusCell.textContent = 'Available';
+                                button.textContent = 'Suspend';
+                                button.setAttribute('data-action', 'suspend');
+                            } else {
+                                statusCell.textContent = 'Unavailable';
+                                button.textContent = 'Restore';
+                                button.setAttribute('data-action', 'restore');
+                            }
+                        } else {
+                            console.error('Failed to update parking spot status:', data.message);
+                        }
+                    })
+                    .catch(error => console.error('Error:', error));
+            }
+        });
+
+    </script>
+
+
+
+
+
+
 </body>
 
 </html>

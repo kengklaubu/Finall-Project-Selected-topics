@@ -36,18 +36,23 @@ LOGIN_URL = 'login'  # URL ของหน้า login
 
 # Session Settings
 #SESSION_COOKIE_AGE = 1800  # 30 นาที
-SESSION_EXPIRE_AT_BROWSER_CLOSE = True # หมดอายุเมื่อปิดเบราว์เซอร์
+#SESSION_EXPIRE_AT_BROWSER_CLOSE = True # หมดอายุเมื่อปิดเบราว์เซอร์
 #SESSION_SAVE_EVERY_REQUEST = True  # รีเฟรชเวลาหมดอายุเมื่อมีการร้องขอใหม่
 #SESSION_COOKIE_AGE = 10  # 10 วินาที
 #SESSION_ENGINE = 'django.contrib.sessions.backends.file'
 
 
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
-EMAIL_HOST_USER = 'forgetd69@gmail.com'
-EMAIL_HOST_PASSWORD = 'dpca bzth hhsw xvda'
+EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER')
+EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD')
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 
 PASSWORD_RESET_TIMEOUT_DAYS = 1  # กำหนดให้ลิงก์หมดอายุใน 1 วัน
@@ -64,7 +69,6 @@ AUTH_USER_MODEL = 'easypark.CustomUser'
 # Application definition
 
 INSTALLED_APPS = [
-    "channels",
     "easypark",
     "django.contrib.admin",
     "django.contrib.auth",
