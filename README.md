@@ -5,7 +5,7 @@
 1. ติดตั้ง Python และ MySQL บนเครื่องของคุณ
 2. Clone โปรเจคนี้:
    ```bash
-   git clone https://github.com/your-repo/easy-parking.git
+   git clone -b Mockupdata https://github.com/your-repo/easy-parking.git
    cd Easy_Parking
 
 ## Create ENV first 
