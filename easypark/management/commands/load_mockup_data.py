@@ -8,7 +8,8 @@ class Command(BaseCommand):
     help = 'Load mockup data from CSV file into ParkingLocation, CustomUser, and ParkingSpot models'
 
     def handle(self, *args, **options):
-        file_path = os.path.join(settings.BASE_DIR, 'static', 'easypark', 'data', 'data_10.csv')  # กำหนดเส้นทางไฟล์ CSV
+        file_path = os.path.join(settings.BASE_DIR, 'static', 'data', 'data_10.csv')  # กำหนดเส้นทางไฟล์ CSV
+        file_path = os.path.join(settings.BASE_DIR, 'static', 'data', 'mockup-data.xlsx')
 
         # อ่านข้อมูลจาก CSV
         if os.path.exists(file_path):
