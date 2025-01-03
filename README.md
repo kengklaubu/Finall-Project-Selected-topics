@@ -6,20 +6,26 @@
 2. Clone โปรเจคนี้:
    ```bash
    git clone https://github.com/your-repo/easy-parking.git
-   cd easy-parking
+   cd Easy_Parking
 
 ## Create ENV first 
  ```bash
- py -m venv clonetest   
+ py -m venv clonetest
+ ```
   
 ## Activate ENV 
-clonetest\Scripts\activate 
+```
+clonetest\Scripts\activate
+```
 
-# Firststep Use comands #
+## Firststep Use comands 
+```
 pip install -r requirements.txt
+```
 
-# load data commands #  
+## load data commands 
+```
 python manage.py load_mockup_data
+```
+##  Dont forget to net start MariaDB on CMD 
 
-# make sure you already create new enc for this #
-# don't forget to swift cd #
