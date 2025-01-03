@@ -1,3 +1,9 @@
+# Create ENV first #
+py -m venv clonetest
+
+# Activate ENV #
+clonetest\Scripts\activate
+
 # Firststep Use comands #
 pip install -r requirements.txt
 
