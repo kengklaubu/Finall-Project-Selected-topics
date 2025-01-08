@@ -206,8 +206,8 @@ def get_parking_spots(request, location_id):
 from django.shortcuts import render, get_object_or_404
 from .models import ParkingLocation
 
-def locations_page(request):
-    return render(request, 'easypark/locations.html')
+#def locations_page(request):
+    #return render(request, 'easypark/locations.html')
 
 def parking_location(request, location_slug):
     location = get_object_or_404(ParkingLocation, slug=location_slug)
@@ -329,13 +329,42 @@ def homepage(request):
 
 
 
+
 from django.http import JsonResponse
 from .models import ParkingSpot
 
 def get_parking_status(request):
-    spots = ParkingSpot.objects.all()
-    data = [{'spot_number': spot.spot_number, 'is_available': spot.is_available} for spot in spots]
+    # ดึง location_id จาก request
+    location_id = request.GET.get('location_id')
+
+    # ตรวจสอบว่า location_id ถูกส่งมาหรือไม่
+    if not location_id:
+        return JsonResponse({'error': 'กรุณาระบุ location_id'}, status=400)
+
+    # ตรวจสอบว่า location_id เป็นตัวเลขหรือไม่
+    try:
+        location_id = int(location_id)
+    except ValueError:
+        return JsonResponse({'error': 'location_id ต้องเป็นตัวเลข'}, status=400)
+
+    # ดึงข้อมูลจากฐานข้อมูล
+    spots = ParkingSpot.objects.filter(location_id=location_id)
+    if not spots.exists():  # กรณีไม่มีข้อมูลใน location_id นี้
+        return JsonResponse({'error': 'ไม่มีข้อมูลช่องจอดสำหรับ location_id นี้'}, status=404)
+
+    # สร้าง JSON response
+    data = [
+        {
+            'spot_number': spot.spot_number,
+            'is_available': spot.is_available,
+        }
+        for spot in spots
+    ]
     return JsonResponse(data, safe=False)
+
+
+
+
 
 
 
@@ -344,17 +373,27 @@ from django.http import JsonResponse
 from .models import ParkingSpot
 
 def get_spot_details(request):
+    location_id = request.GET.get('location_id')
     spot_number = request.GET.get('spot')
+
+    # ตรวจสอบว่า location_id และ spot_number ถูกส่งมาหรือไม่
+    if not location_id or not spot_number:
+        return JsonResponse({'error': 'กรุณาระบุ location_id และ spot_number'}, status=400)
+    
     try:
-        spot = ParkingSpot.objects.select_related('reserved_by').get(spot_number=spot_number)
+        spot = ParkingSpot.objects.get(location_id=location_id, spot_number=spot_number)
         response_data = {
             'spot_number': spot.spot_number,
+            'is_available': spot.is_available,
             'reserved_by': spot.reserved_by.username if spot.reserved_by else 'ว่าง',
-            'license_plate': spot.license_plate if spot.license_plate else 'ไม่มีข้อมูล',
+            'license_plate': spot.license_plate if spot.license_plate else None,
         }
         return JsonResponse(response_data)
     except ParkingSpot.DoesNotExist:
         return JsonResponse({'error': 'ไม่พบข้อมูลช่องจอดนี้'}, status=404)
+
+
+
     
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render
@@ -389,25 +428,38 @@ def reserve_parking_spot(request, spot_id):
 
 
 
-
 from django.shortcuts import render, redirect
 from django.http import JsonResponse
 from .models import ParkingSpot
 from django.contrib.auth.decorators import login_required
-# ฟังก์ชันแสดงหน้า reserve_page พร้อมแสดงข้อมูลที่จอง
+
 @login_required
 def reserve_page(request, spot_number):
-    # ดึงข้อมูลรายละเอียดของที่จอดรถจาก spot_number
+    location_id = request.GET.get('location_id')  # รับ location_id จาก URL
+    print(f"Received spot_number: {spot_number}, location_id: {location_id}")
+
     try:
-        spot = ParkingSpot.objects.get(spot_number=spot_number)
+        # ดึงข้อมูลจากฐานข้อมูล
+        if location_id:
+            spot = ParkingSpot.objects.get(spot_number=spot_number, location_id=location_id)
+        else:
+            spot = ParkingSpot.objects.get(spot_number=spot_number)
+
+        print(f"Spot found: {spot}")
+
         context = {
-            'spot_number': spot.spot_number,
-            'location': spot.location,
-            'date': spot.date,  # ต้องมีข้อมูล date
+            'spot': spot,  # ส่งข้อมูล spot ไปที่ template
         }
         return render(request, 'easypark/reserve_page.html', context)
     except ParkingSpot.DoesNotExist:
-        return render(request, 'error.html', {'message': 'ไม่พบที่จอดรถที่คุณเลือก'})
+        print("No spot found")
+        return render(request, 'easypark/error.html', {'message': 'ไม่พบที่จอดรถที่คุณเลือก'})
+    except ParkingSpot.MultipleObjectsReturned:
+        print("Multiple spots found")
+        return render(request, 'easypark/error.html', {'message': 'พบข้อมูลซ้ำในระบบ โปรดติดต่อผู้ดูแลระบบ'})
+
+
+
 
 
 

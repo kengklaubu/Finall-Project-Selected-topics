@@ -71,6 +71,7 @@
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
         }
     </style>
+    <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
 </head>
 
 <body>
@@ -88,51 +89,17 @@
             <a href="{% url 'profile' %}">
                 <img src="{% static 'easypark/image/user_1.png' %}" alt="User Icon">
             </a>
-        </div>        
+        </div>
     </div>
 
-    <!-- Main Content Section -->
-    <div class="container">
-        <!-- Map Section -->
-        <div class="map-container">
-            <img src="{% static 'image/sc_parking_map.png' %}" alt="Parking Map">
-        </div>
-        <div class="map-container map">
-            <img src="{% static 'easypark/image/spot_sc.png' %}" alt="Parking Map">
-        </div>
-    </div>
+
 
 
 
 
 
     <!-- Parking Layout Section -->
-    <div class="parking-layout">
-        <div id="spot-1" class="parking-spot" onclick="showSpotDetails(1)">1</div>
-        <div id="spot-2" class="parking-spot" onclick="showSpotDetails(2)">2</div>
-        <div id="spot-3" class="parking-spot" onclick="showSpotDetails(3)">3</div>
-        <div id="spot-4" class="parking-spot" onclick="showSpotDetails(4)">4</div>
-        <div id="spot-5" class="parking-spot" onclick="showSpotDetails(5)">5</div>
-        <div id="spot-6" class="parking-spot" onclick="showSpotDetails(6)">6</div>
-        <div id="spot-7" class="parking-spot" onclick="showSpotDetails(7)">7</div>
-        <div id="spot-8" class="parking-spot" onclick="showSpotDetails(8)">8</div>
-        <div id="spot-9" class="parking-spot" onclick="showSpotDetails(9)">9</div>
-        <div id="spot-10" class="parking-spot" onclick="showSpotDetails(10)">10</div>
-        <div id="spot-11" class="parking-spot" onclick="showSpotDetails(11)">11</div>
-        <div id="spot-12" class="parking-spot" onclick="showSpotDetails(12)">12</div>
-        <div id="spot-13" class="parking-spot" onclick="showSpotDetails(13)">13</div>
-        <div id="spot-14" class="parking-spot" onclick="showSpotDetails(14)">14</div>
-        <div id="spot-15" class="parking-spot" onclick="showSpotDetails(15)">15</div>
-        <div id="spot-16" class="parking-spot" onclick="showSpotDetails(16)">16</div>
-        <div id="spot-17" class="parking-spot" onclick="showSpotDetails(17)">17</div>
-        <div id="spot-18" class="parking-spot" onclick="showSpotDetails(18)">18</div>
-        <div id="spot-19" class="parking-spot" onclick="showSpotDetails(19)">19</div>
-        <div id="spot-20" class="parking-spot" onclick="showSpotDetails(20)">20</div>
-        <div id="spot-21" class="parking-spot" onclick="showSpotDetails(21)">21</div>
-        <div id="spot-22" class="parking-spot" onclick="showSpotDetails(22)">22</div>
-        <div id="spot-23" class="parking-spot" onclick="showSpotDetails(23)">23</div>
-        <div id="spot-24" class="parking-spot" onclick="showSpotDetails(24)">24</div>
-    </div>
+
     </div>
     <style>
         .container {
@@ -262,101 +229,126 @@
     </style>
 
 
-    <!-- Details Section -->
-    <!-- Modal Overlay -->
+    <div class="container">
+        <!-- SVG Map -->
+        <svg id="parking-map" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 300" width="100%" height="100%">
+            <image href="{% static 'easypark/image/spot_sc.png' %}" x="0" y="0" width="500" height="300" />
+
+            <!-- ตัวอย่างช่องจอด -->
+            <g id="spot-1" onclick="showSpotDetails(1)"></g>
+            <g id="spot-2" onclick="showSpotDetails(2)"></g>
+
+            <!-- เพิ่ม g สำหรับทุก spot -->
+
+        </svg>
+
+
+    </div>
+
+
+    <!-- Modal -->
     <div id="modal-overlay"
         style="display:none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.5); z-index: 999;">
         <div id="details-container"
             style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background-color: white; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); z-index: 1000;">
-            <!-- รายละเอียดจะแสดงที่นี่ -->
+            <!-- รายละเอียดช่องจอดจะแสดงที่นี่ -->
         </div>
     </div>
 
-
-
-    <!-- Back Button -->
-    <div class="back-button">
-        <a href="{% url 'homepage' %}">ย้อนกลับ</a>
-    </div>
-
-    <!-- วางโค้ด AJAX ที่นี่ -->
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script>
+        const locationId = 1;
         function fetchParkingStatus() {
+            console.log("Fetching parking status...");
             $.ajax({
-                url: "{% url 'get_parking_status' %}",  // URL ที่เรียกข้อมูลสถานะที่จอดรถ
+                url: "{% url 'get_parking_status' %}",
                 method: "GET",
+                data: { location_id: locationId }, // ส่ง location_id ไปยัง backend
                 success: function (data) {
+                    console.log("Parking status fetched:", data);
+
+                    const seen = new Set(); // ตรวจสอบความซ้ำซ้อน
                     data.forEach(function (spot) {
-                        var spotElement = document.getElementById("spot-" + spot.spot_number);
+                        if (seen.has(spot.spot_number)) return; // ข้ามข้อมูลซ้ำ
+                        seen.add(spot.spot_number);
+
+                        const spotElement = document.querySelector(`#spot-${spot.spot_number}`);
+                        if (!spotElement) return; // ถ้าไม่มี <g> ตรงกับ spot_number ข้าม
+
+                        spotElement.innerHTML = '';
+
+                        const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
                         if (spot.is_available) {
-                            spotElement.style.backgroundColor = "green";  // ช่องว่าง
+                            path.setAttribute("fill", "#22db14"); // สีเขียว (ว่าง)
+                            path.setAttribute("d", "M64 80c-8.8 0-16 7.2-16 16l0 320c0 8.8 7.2 16 16 16l320 0c8.8 0 16-7.2 16-16l0-320c0-8.8-7.2-16-16-16L64 80zM0 96C0 60.7 28.7 32 64 32l320 0c35.3 0 64 28.7 64 64l0 320c0 35.3-28.7 64-64 64L64 480c-35.3 0-64-28.7-64-64L0 96zM337 209L209 337c-9.4 9.4-24.6 9.4-33.9 0l-64-64c-9.4-9.4-9.4-24.6 0-33.9s24.6-9.4 33.9 0l47 47L303 175c9.4-9.4 24.6-9.4 33.9 0s9.4 24.6 0 33.9z");
+                            path.setAttribute("transform", "translate(295, 200) scale(0.05)");
                         } else {
-                            spotElement.style.backgroundColor = "red";    // ช่องไม่ว่าง
+                            path.setAttribute("fill", "#ff0000"); // สีแดง (ไม่ว่าง)
+                            path.setAttribute("d", "M256 48a208 208 0 1 1 0 416 208 208 0 1 1 0-416zm0 464A256 256 0 1 0 256 0a256 256 0 1 0 0 512zM175 175c-9.4 9.4-9.4 24.6 0 33.9l47 47-47 47c-9.4 9.4-9.4 24.6 0 33.9s24.6 9.4 33.9 0l47-47 47 47c-9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-47-47 47-47c-9.4-9.4 9.4-24.6 0-33.9s-24.6-9.4-33.9 0l-47 47-47-47c-9.4-9.4-24.6-9.4-33.9 0z");
+                            path.setAttribute("transform", "translate(329, 200) scale(0.05)");
                         }
+                        spotElement.appendChild(path);
                     });
+                },
+                error: function () {
+                    console.error("Error fetching parking status");
                 }
             });
         }
 
+
+
+        // เรียก API ทุกๆ 2 วินาที
+        setInterval(fetchParkingStatus, 2000);
+
+
+        // ดึงรายละเอียดช่องจอด
         function showSpotDetails(spotNumber) {
             $.ajax({
-                url: "{% url 'get_spot_details' %}?spot=" + spotNumber,
+                url: "{% url 'get_spot_details' %}",
                 method: "GET",
+                data: { location_id: locationId, spot: spotNumber },
                 success: function (data) {
-                    if (data.error) {
-                        document.getElementById("details-container").innerHTML = `
-                <button class="reserve-btn" onclick="closeModal()">ปิด</button>
-                <p>${data.error}</p>
-            `;
+                    const detailsContainer = document.getElementById("details-container");
+                    if (!data || typeof data !== "object" || data.error) {
+                        detailsContainer.innerHTML = `<p>${data.error || "ไม่สามารถโหลดข้อมูลได้"}</p>`;
                     } else {
-                        // ถ้าช่องนี้ถูกจองไปแล้ว
-                        if (data.reserved_by !== 'ว่าง') {
-                            document.getElementById("details-container").innerHTML = `
-                    <h3>ช่องจอดหมายเลข ${data.spot_number}</h3>
+                        detailsContainer.innerHTML = `
+                    <h3>ช่องจอดหมายเลข ${spotNumber}</h3>
+                    <p>สถานะ: ${data.is_available ? "ว่าง" : "ไม่ว่าง"}</p>
                     <p>จองโดย: ${data.reserved_by}</p>
                     <p>ทะเบียนรถ: ${data.license_plate}</p>
-                    <p style="color:red;">ช่องนี้มีคนจองแล้ว ไม่สามารถจองได้</p>
-                    <button class="reserve-btn" onclick="closeModal()">ปิด</button>
+                    <button class="reserve-btn" onclick="goToReservePage(${spotNumber})">จองที่นี่</button>
                 `;
-                        } else {
-                            // ถ้าช่องนี้ยังว่าง สามารถจองได้
-                            document.getElementById("details-container").innerHTML = `
-                    <h3>ช่องจอดหมายเลข ${data.spot_number}</h3>
-                    <p>จองโดย: ${data.reserved_by}</p>
-                    <p>ทะเบียนรถ: ${data.license_plate}</p>
-                    <button class="reserve-btn" onclick="goToReservePage(${data.spot_number})">จองที่นี่</button>
-                    <button class="reserve-btn" onclick="closeModal()">ปิด</button>
-                `;
-                        }
                     }
-                    showModal();  // แสดง modal
+                    showModal();
                 },
                 error: function () {
-                    document.getElementById("details-container").innerHTML = `
-            <button class="reserve-btn" onclick="closeModal()">ปิด</button>
-            <p>เกิดข้อผิดพลาดในการดึงข้อมูล</p>
-        `;
-                    showModal();  // แสดง modal เมื่อเกิดข้อผิดพลาด
+                    console.error("Error fetching spot details");
+                    const detailsContainer = document.getElementById("details-container");
+                    detailsContainer.innerHTML = `<p>ไม่สามารถโหลดข้อมูลได้ในขณะนี้ โปรดลองอีกครั้ง</p>`;
+                    showModal();
                 }
             });
         }
 
         function goToReservePage(spotNumber) {
-            // Redirect ไปที่หน้าสำหรับจองพร้อมกับข้อมูล spot_number
+            if (isNaN(spotNumber)) {
+                alert("ข้อมูลไม่ถูกต้อง");
+                return;
+            }
             window.location.href = `/reserve_page/${spotNumber}/`;
         }
 
         function showModal() {
+            const overlay = document.getElementById("modal-overlay");
             document.getElementById("details-container").style.display = "block";
-            document.getElementById("modal-overlay").style.display = "block";
+            overlay.style.display = "block";
 
-            // เพิ่ม event listener เพื่อปิด modal เมื่อคลิกนอก modal
-            document.getElementById("modal-overlay").addEventListener("click", function (event) {
-                if (event.target === document.getElementById("modal-overlay")) {
+            overlay.addEventListener("click", function (event) {
+                if (event.target === overlay) {
                     closeModal();
                 }
-            });
+            }, { once: true });
         }
 
         function closeModal() {
@@ -364,9 +356,12 @@
             document.getElementById("modal-overlay").style.display = "none";
         }
 
-        // เรียก fetchParkingStatus ทุกๆ 2 วินาที
+
+
+        // อัปเดตสถานะที่จอดรถทุกๆ 2 วินาที
         setInterval(fetchParkingStatus, 2000);
     </script>
+
 
 </body>
 
