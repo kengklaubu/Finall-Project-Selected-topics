@@ -125,7 +125,7 @@ DATABASES = {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'easyparking',  # ชื่อฐานข้อมูล
         'USER': 'root',         # ชื่อผู้ใช้ของ MySQL
-        'PASSWORD': '0000',         # รหัสผ่านของ MySQL
+        'PASSWORD': '',         # รหัสผ่านของ MySQL
         'HOST': 'localhost',    # หรือ IP ของเซิร์ฟเวอร์ฐานข้อมูล MySQL
         'PORT': '3306',         # พอร์ตของ MySQL (ค่าเริ่มต้นคือ 3306)
         'OPTIONS': {
