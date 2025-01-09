@@ -2,7 +2,7 @@
 
 ## ขั้นตอนการติดตั้ง
 
-1. ติดตั้ง Python และ MySQL บนเครื่องของคุณ
+1. ติดตั้ง Python และ MariaDB บนเครื่องของคุณ
 2. Clone โปรเจคนี้:
    ```bash
    git clone -b Mockupdata https://github.com/your-repo/easy-parking.git
