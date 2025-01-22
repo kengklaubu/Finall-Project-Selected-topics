@@ -126,6 +126,44 @@
         </div>
     </div>
 
+
+
+    <!-- camera feed -->
+    <div class="mt-8 max-w-2xl mx-auto bg-white p-6 rounded-lg shadow-lg">
+        <h2 class="text-xl font-semibold mb-4 text-gray-700 text-center">Live Camera Feed</h2>
+
+        <!-- Dropdown สำหรับเลือกสถานที่ -->
+        <div class="mb-6">
+            <label for="location-select" class="block text-base font-medium text-gray-600 mb-2">Select Location:</label>
+            <select id="location-select" class="block w-full border-gray-300 rounded-md shadow-sm p-3 text-gray-700">
+                <option value="">Select a location</option>
+                {% for location in locations %}
+                <option value="{{ location.id }}">{{ location.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <!-- พื้นที่สำหรับแสดง Live Stream -->
+        <div class="overflow-hidden rounded-lg border border-gray-300 bg-gray-100">
+            <img id="live-stream" class="w-full h-80 object-cover" src="" alt="Live Stream">
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('location-select').addEventListener('change', function () {
+            const locationId = this.value;
+            const liveStream = document.getElementById('live-stream');
+            liveStream.src = locationId ? `/stream/${locationId}/` : '';
+        });
+    </script>
+
+
+
+
+
+
+
+
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             const locationDropdown = document.getElementById('location');

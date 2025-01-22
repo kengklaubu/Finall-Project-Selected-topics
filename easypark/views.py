@@ -163,6 +163,82 @@ def suspend_parking_spot(request, spot_id):
     except Exception as e:
         # จัดการข้อผิดพลาดอื่น ๆ
         return JsonResponse({'success': False, 'message': str(e)}, status=500)
+    
+
+
+
+from django.http import JsonResponse
+from .models import ParkingLocation
+from .detection_service import detect_cars  # ฟังก์ชันตรวจจับที่เชื่อมต่อกับกล้อง
+
+def get_camera_url(location_name):
+    try:
+        location = ParkingLocation.objects.get(name=location_name)
+        return location.camera_url
+    except ParkingLocation.DoesNotExist:
+        print(f"Location {location_name} does not exist.")
+        return None
+
+def start_detection(request):
+    # รับ Location จากผู้ใช้ (ผ่าน GET หรือ POST)
+    selected_location = request.GET.get('location')  # หรือ request.POST.get('location')
+    if not selected_location:
+        return JsonResponse({'error': 'Location not specified'}, status=400)
+
+    # ดึง URL กล้องจาก Location
+    camera_url = get_camera_url(selected_location)
+    if not camera_url:
+        return JsonResponse({'error': f'Camera URL not found for location: {selected_location}'}, status=404)
+
+    # เริ่มการตรวจจับ
+    detect_cars(selected_location)  # ฟังก์ชันตรวจจับที่คุณเขียนไว้
+    return JsonResponse({'status': f'Detection started for location: {selected_location}'})
+
+
+from django.db.models.signals import post_migrate
+from django.dispatch import receiver
+from .detection_service import start_detection_in_background
+
+@receiver(post_migrate)
+def start_detection(sender, **kwargs):
+    start_detection_in_background()
+
+
+import cv2
+from django.http import StreamingHttpResponse
+
+def generate_frames(camera_url):
+    cap = cv2.VideoCapture(camera_url)
+    while True:
+        success, frame = cap.read()
+        if not success:
+            break
+        # แปลงเฟรมเป็นรูปภาพ JPEG
+        _, buffer = cv2.imencode('.jpg', frame)
+        frame_bytes = buffer.tobytes()
+        yield (b'--frame\r\n'
+               b'Content-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n')
+        
+
+from django.http import HttpResponse
+def stream_video(request, location_id):
+    # ดึง URL ของกล้องตาม Location ที่เลือก
+    from .models import ParkingLocation  # Import Model
+    try:
+        location = ParkingLocation.objects.get(id=location_id)
+        camera_url = location.camera_url
+    except ParkingLocation.DoesNotExist:
+        return HttpResponse("Location not found", status=404)
+
+    # Streaming Response
+    return StreamingHttpResponse(
+        generate_frames(camera_url),
+        content_type='multipart/x-mixed-replace; boundary=frame'
+    )
+
+
+
+
 
 
 
