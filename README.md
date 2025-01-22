@@ -12,16 +12,6 @@
    git clone -b Mockupdata https://github.com/your-repo/easy-parking.git
    cd Easy_Parking
 
-## Create ENV first 
- ```bash
- py -m venv clonetest
- ```
-  
-## Activate ENV 
-```
-clonetest\Scripts\activate
-```
-
 ## Firststep Use comands 
 ```
 pip install -r requirements.txt
