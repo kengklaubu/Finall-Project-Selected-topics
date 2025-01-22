@@ -39,6 +39,8 @@ urlpatterns = [
     #path('manager/parking/suspend/<int:spot_id>/', views.suspend_parking_spot, name='suspend_parking_spot'),
     path('get_parking_spots/<int:location_id>/', views.get_parking_spots, name='get_parking_spots'),
     path('suspend_parking_spot/<int:spot_id>/', views.suspend_parking_spot, name='suspend_parking_spot'),
+    path('start-detection/', views.start_detection, name='start_detection'),
+     path('stream/<int:location_id>/', views.stream_video, name='stream_video'),
     
 
 

@@ -33,6 +33,7 @@ class ParkingLocation(models.Model):
     slug = models.SlugField(max_length=50, unique=True)  # slug สำหรับ URL
     description = models.TextField(null=True, blank=True)  # รายละเอียด (สามารถว่างได้)
     total_spots = models.IntegerField(default=0)  # จำนวนช่องจอดทั้งหมด
+    camera_url = models.URLField(null=True, blank=True)
     available_spots = models.IntegerField(default=0)  # จำนวนช่องจอดที่ว่าง
     created_at = models.DateTimeField(auto_now_add=True)  # เวลาที่สร้าง
     updated_at = models.DateTimeField(auto_now=True)  # เวลาที่อัปเดตล่าสุด
