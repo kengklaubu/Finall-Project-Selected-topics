@@ -6,7 +6,7 @@ from .utils import update_parking_status  # ฟังก์ชันสำหร
 # ตัวอย่าง ROIs (ขึ้นอยู่กับ Location)
 rois = {
     "ตึกวิจัย": [
-        (1, 400, 400, 200, 200),
+        (1, 400, 400, 200, 200),   # x y width height
         (2, 700, 200, 200, 200),
     ],
     "โรงพยาบาล": [
