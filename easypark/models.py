@@ -11,7 +11,7 @@ class CustomUser(AbstractUser,PermissionsMixin):
     ROLE_CHOICES = [
         ('user', 'ผู้ใช้งานทั่วไป'),
         ('admin', 'ผู้ดูแลระบบ'),
-        ('manager', 'เจ้าของร้าน/สถานที่'),
+        ('manager', 'เจ้าของลานจอดรถ'),
     ]
     role = models.CharField(
         max_length=10,
@@ -37,6 +37,11 @@ class ParkingLocation(models.Model):
     available_spots = models.IntegerField(default=0)  # จำนวนช่องจอดที่ว่าง
     created_at = models.DateTimeField(auto_now_add=True)  # เวลาที่สร้าง
     updated_at = models.DateTimeField(auto_now=True)  # เวลาที่อัปเดตล่าสุด
+    image = models.ImageField(upload_to='parking_images/', null=True, blank=True)
+    owner = models.ForeignKey(
+        settings.AUTH_USER_MODEL,  # ใช้ settings.AUTH_USER_MODEL แทน auth.User
+        on_delete=models.CASCADE
+    )
 
     def __str__(self):
         return self.name
@@ -56,6 +61,8 @@ class ParkingSpot(models.Model):
     )  # ผู้จอง
     created_at = models.DateTimeField(auto_now_add=True)  # เวลาที่สร้าง
     updated_at = models.DateTimeField(auto_now=True)  # เวลาที่แก้ไขล่าสุด
+    x = models.IntegerField(null=True, blank=True)  # ความกว้าง
+    y = models.IntegerField(null=True, blank=True)  # ความยาว
 
     def __str__(self):
         return f"Spot {self.spot_number} at {self.location.name}"

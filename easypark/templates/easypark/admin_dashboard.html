@@ -1,20 +1,79 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
 </head>
+<body class="bg-gray-100">
+    <div class="flex h-screen">
+        <!-- Sidebar -->
+        <div class="w-64 bg-gray-800 text-white flex flex-col">
+            <div class="p-4 text-2xl font-bold">Admin Panel</div>
+            <nav class="flex-1">
+                <a href="#" class="block py-2.5 px-4 hover:bg-gray-700">Dashboard</a>
+                <a href="#" class="block py-2.5 px-4 hover:bg-gray-700">Users</a>
+                <a href="#" class="block py-2.5 px-4 hover:bg-gray-700">Settings</a>
+            </nav>
+            <form action="{% url 'logout' %}" method="post" class="block py-2.5 px-4 text-center">
+                {% csrf_token %}
+                <button type="submit" class="w-full bg-red-500 hover:bg-red-600 py-2 rounded">Logout</button>
+            </form>
+        </div>
 
-<body>
-    <h1>Welcome, Admin!</h1>
-    <p>This is the admin dashboard.</p>
 
-    <form action="{% url 'logout' %}" method="post">
-        {% csrf_token %}
-        <button type="submit" class="btn btn-danger">Logout</button>
-    </form>
+        
+
+        <!-- Main Content -->
+        <div class="flex-1 flex flex-col">
+            
+            <!-- Navbar -->
+            <div class="bg-white p-4 shadow flex justify-between">
+                <div class="text-xl font-bold">Dashboard</div>
+                <div class="text-gray-700">Admin</div>
+            </div>
+            
+            <!-- Dashboard Cards -->
+            <div class="p-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <div class="text-gray-700 text-lg">Total Users</div>
+                    <div class="text-3xl font-bold">{{ total_users }}</div>
+                </div>
+            </div>
+
+            <div class="p-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <div class="text-gray-700 text-lg">Total Locations</div>
+                    <div class="text-3xl font-bold">{{ total_locations }}</div>
+                </div>
+            </div>
+            
+            <!-- Users Table -->
+            <div class="p-6">
+                <h2 class="text-xl font-bold mb-4">User List</h2>
+                <div class="bg-white p-4 rounded-lg shadow-md">
+                    <table class="w-full border-collapse border border-gray-300">
+                        <thead>
+                            <tr class="bg-gray-200">
+                                <th class="border p-2">ID</th>
+                                <th class="border p-2">UserName</th>
+                                <th class="border p-2">Email</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for user in users %}
+                            <tr>
+                                <td class="border p-2">{{ user.id }}</td>
+                                <td class="border p-2">{{ user.username }}</td>
+                                <td class="border p-2">{{ user.email }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
 </body>
-
 </html>

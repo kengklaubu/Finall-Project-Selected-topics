@@ -4,10 +4,10 @@ from .models import CustomUser, ParkingSpot, Reservation, ParkingLocation
 
 @admin.register(ParkingSpot)
 class ParkingSpotAdmin(admin.ModelAdmin):
-    list_display = ('spot_number', 'is_available', 'license_plate', 'reserved_by')
+    list_display = ('spot_number', 'is_available', 'license_plate', 'reserved_by','location')
     list_editable = ('is_available', 'license_plate')
-    search_fields = ('spot_number', 'license_plate')
-    list_filter = ('is_available',)
+    search_fields = ('spot_number', 'license_plate','location')
+    list_filter = ('is_available', 'location')
     actions = ['mark_as_available', 'mark_as_unavailable']
 
     def mark_as_available(self, request, queryset):

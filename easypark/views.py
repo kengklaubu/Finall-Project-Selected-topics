@@ -1,3 +1,4 @@
+import json
 import requests
 import csv
 from django.shortcuts import render
@@ -77,38 +78,51 @@ def is_admin(user):
 
 # ฟังก์ชันนี้จะทำให้แค่แอดมินสามารถเข้าใช้งาน
 from django.contrib.auth.decorators import login_required
+from .models import CustomUser, ParkingLocation
 @login_required
 @user_passes_test(is_admin)
 @login_required
 def admin_dashboard(request):
-    return render(request, 'easypark/admin_dashboard.html')
-
-# หน้าแดชบอร์ดของผู้จัดการ (Manager)
-from django.shortcuts import render, redirect
-from django.contrib.auth.decorators import login_required
-from easypark.models import Reservation, ParkingSpot, CustomUser
-
-from django.shortcuts import render, redirect
-from django.contrib.auth.decorators import login_required
-from .models import ParkingLocation, Reservation
-
-@login_required
-def manager_dashboard(request):
-    # ตรวจสอบว่าเป็น Manager
-    if request.user.role != 'manager':
-        return redirect('homepage')  # ถ้าไม่ใช่ Manager ให้กลับไปหน้า Homepage
-
-    # ดึงข้อมูลสถานที่ทั้งหมด
+    users = CustomUser.objects.all()  # ดึงผู้ใช้ทั้งหมด
+    total_users = users.count()  # นับจำนวนผู้ใช้ทั้งหมด
     locations = ParkingLocation.objects.all()
-    
-    # ดึงข้อมูลการจองทั้งหมด โดยใช้ select_related เพื่อดึงข้อมูลที่เชื่อมโยงไปยัง CustomUser
-    reservations = Reservation.objects.select_related('parking_spot', 'user', 'parking_spot__location', 'parking_spot__reserved_by')
+    total_locations = locations.count()
 
     context = {
-        'locations': locations,
-        'reservations': reservations,
+        'users': users,
+        'total_users': total_users,
+        'total_locations': total_locations,
     }
-    return render(request, 'easypark/manager_dashboard.html', context)
+    return render(request, 'easypark/admin_dashboard.html', context)
+
+
+from django.shortcuts import render, get_object_or_404
+from django.contrib.auth.decorators import login_required
+from django.http import HttpResponseForbidden
+from .models import ParkingLocation ,Reservation, ParkingSpot
+
+@login_required
+def manager_dashboard(request, location_id):
+    # ค้นหา location ที่ผู้ใช้เป็นเจ้าของ
+    location = ParkingLocation.objects.get(id=location_id)
+
+    # ตรวจสอบว่า user เป็นเจ้าของ location นี้หรือไม่
+    if location.owner != request.user:
+        return HttpResponseForbidden("You do not have permission to access this location.")
+
+    # ดึงข้อมูลที่ต้องการแสดงในหน้า dashboard
+    reservations = Reservation.objects.filter(parking_spot__location=location)
+    parking_spots = ParkingSpot.objects.filter(location=location)
+
+    # ส่งข้อมูลทั้งหมดไปยัง template
+    return render(request, 'easypark/manager_dashboard.html', {
+        'location': location,
+        'reservations': reservations,
+        'parking_spots': parking_spots,
+        'current_location': location.name  # เพิ่มข้อมูล location ที่กำลังดู
+    })
+
+
 
 
 
@@ -163,6 +177,9 @@ def suspend_parking_spot(request, spot_id):
     except Exception as e:
         # จัดการข้อผิดพลาดอื่น ๆ
         return JsonResponse({'success': False, 'message': str(e)}, status=500)
+
+    
+
     
 
 
@@ -179,64 +196,103 @@ def get_camera_url(location_name):
         print(f"Location {location_name} does not exist.")
         return None
 
-def start_detection(request):
-    # รับ Location จากผู้ใช้ (ผ่าน GET หรือ POST)
-    selected_location = request.GET.get('location')  # หรือ request.POST.get('location')
-    if not selected_location:
-        return JsonResponse({'error': 'Location not specified'}, status=400)
-
-    # ดึง URL กล้องจาก Location
-    camera_url = get_camera_url(selected_location)
-    if not camera_url:
-        return JsonResponse({'error': f'Camera URL not found for location: {selected_location}'}, status=404)
-
-    # เริ่มการตรวจจับ
-    detect_cars(selected_location)  # ฟังก์ชันตรวจจับที่คุณเขียนไว้
-    return JsonResponse({'status': f'Detection started for location: {selected_location}'})
 
 
-from django.db.models.signals import post_migrate
-from django.dispatch import receiver
+import time
+from django.http import JsonResponse
+from django.apps import apps
 from .detection_service import start_detection_in_background
 
-@receiver(post_migrate)
-def start_detection(sender, **kwargs):
-    start_detection_in_background()
+def start_detection(request):
+    start_time = time.time()  # บันทึกเวลาที่เริ่ม
+    location = request.GET.get('location')
+    
+    if not location:
+        return JsonResponse({"error": "No location specified"}, status=400)
+
+    app_config = apps.get_app_config('easypark')
+    model = app_config.model  
+    if model is None:
+        return JsonResponse({"error": "Model not loaded"}, status=500)
+
+    start_detection_in_background(location, model)
+
+    end_time = time.time()  # บันทึกเวลาที่สิ้นสุด
+    print(f"start_detection() took {end_time - start_time:.2f} seconds")
+
+    return JsonResponse({"status": f"Detection started for location: {location}"})
 
 
+
+
+
+
+
+
+
+
+
+
+from django.http import StreamingHttpResponse, HttpResponse
+from django.shortcuts import get_object_or_404
+from .models import ParkingLocation
 import cv2
-from django.http import StreamingHttpResponse
 
-def generate_frames(camera_url):
+def generate_raw_frames(camera_url):
+    """
+    สตรีมวิดีโอสดแบบปกติ (ไม่มี Bounding Box)
+    """
     cap = cv2.VideoCapture(camera_url)
+    if not cap.isOpened():
+        print(f"Cannot connect to camera: {camera_url}")
+        return
+
     while True:
         success, frame = cap.read()
         if not success:
             break
-        # แปลงเฟรมเป็นรูปภาพ JPEG
+
         _, buffer = cv2.imencode('.jpg', frame)
-        frame_bytes = buffer.tobytes()
+        frame = buffer.tobytes()
+
         yield (b'--frame\r\n'
-               b'Content-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n')
-        
+               b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
 
-from django.http import HttpResponse
+    cap.release()
+
 def stream_video(request, location_id):
-    # ดึง URL ของกล้องตาม Location ที่เลือก
-    from .models import ParkingLocation  # Import Model
-    try:
-        location = ParkingLocation.objects.get(id=location_id)
-        camera_url = location.camera_url
-    except ParkingLocation.DoesNotExist:
-        return HttpResponse("Location not found", status=404)
+    """
+    สตรีมวิดีโอสด (ไม่มี Bounding Box)
+    """
+    location = get_object_or_404(ParkingLocation, id=location_id)
+    camera_url = location.camera_url
 
-    # Streaming Response
     return StreamingHttpResponse(
-        generate_frames(camera_url),
-        content_type='multipart/x-mixed-replace; boundary=frame'
+        generate_raw_frames(camera_url),
+        content_type="multipart/x-mixed-replace; boundary=frame"
     )
 
 
+
+from django.http import StreamingHttpResponse
+from django.shortcuts import get_object_or_404
+from easypark.models import ParkingLocation
+from easypark.video_stream import generate_frames  # Import ฟังก์ชัน generate_frames
+
+def video_feed(request, location_id):
+    """
+    สตรีมวิดีโอจากกล้องของสถานที่ที่เลือก
+    """
+    location = get_object_or_404(ParkingLocation, id=location_id)  # ดึงข้อมูลสถานที่
+    camera_url = location.camera_url  # ดึง URL ของกล้อง
+
+    if not camera_url:
+        return StreamingHttpResponse(b'Error: Camera URL not found', content_type="text/plain")
+
+    return StreamingHttpResponse(
+        generate_frames(camera_url, location.name),  # ✅ ส่งทั้ง `camera_url` และ `location.name`
+        content_type="multipart/x-mixed-replace; boundary=frame"
+    )
 
 
 
@@ -370,31 +426,29 @@ import csv
 from django.conf import settings
 
 def homepage(request):
-    # เส้นทางไฟล์ CSV ในโฟลเดอร์ static
-    file_path = os.path.join(settings.BASE_DIR, 'static/data/data_10.csv')
-   
-    locations = []
-    if os.path.exists(file_path): 
-        with open(file_path, 'r', encoding='utf-8') as file:
-            reader = csv.reader(file)
-            next(reader, None)  
-            for row in reader:
-                locations.append(row[0])
-    else:
-        print("ไฟล์ CSV ไม่พบในโปรเจค")
+    locations = ParkingLocation.objects.all()
+    default_location = ParkingLocation.objects.get(name='อ้อมใหญ่')
 
-    # ถ้า user ยังไม่ได้ล็อกอิน ก็แสดงหน้า homepage แบบปกติ
     if request.user.is_authenticated:
         # ตรวจสอบ role ของผู้ใช้ที่ล็อกอิน
         if request.user.role == 'admin':
             return redirect('admin_dashboard')  # เปลี่ยนไปหน้าแดชบอร์ดของแอดมิน
         elif request.user.role == 'manager':
-            return redirect('manager_dashboard')  # เปลี่ยนไปหน้าแดชบอร์ดของผู้จัดการ
+            # ตรวจสอบว่า manager เป็นเจ้าของ location อะไรบ้าง
+            locations_owned_by_manager = ParkingLocation.objects.filter(owner=request.user)
+
+            if locations_owned_by_manager.exists():
+                # ถ้ามี location ที่เป็นของ manager ให้ redirect ไปที่หน้า dashboard ของ location แรก
+                return redirect('manager_dashboard', location_id=locations_owned_by_manager.first().id)
+            else:
+                # ถ้า manager ไม่มี location ให้ไปที่หน้าอื่นหรือแสดงข้อมูล
+                return render(request, 'easypark/home.html', {'locations': locations, 'default_location': default_location, 'message': 'You do not own any locations.'})
         else:
-            return render(request, 'easypark/home.html', {'locations': locations})  # สำหรับผู้ใช้ทั่วไป
+            # สำหรับผู้ใช้ทั่วไป
+            return render(request, 'easypark/home.html', {'locations': locations, 'default_location': default_location})
     else:
         # ถ้าผู้ใช้ไม่ได้ล็อกอิน ก็ให้แสดงหน้า homepage
-        return render(request, 'easypark/home.html', {'locations': locations})
+        return render(request, 'easypark/home.html', {'locations': locations, 'default_location': default_location})
 
 
     
@@ -436,8 +490,15 @@ def get_parking_status(request):
         }
         for spot in spots
     ]
-    return JsonResponse(data, safe=False)
 
+    return JsonResponse([
+    {"id": spot.id, "is_available": spot.is_available} for spot in spots
+], safe=False)
+
+
+
+
+# easypark/views.py
 
 
 
@@ -447,26 +508,31 @@ def get_parking_status(request):
 
 from django.http import JsonResponse
 from .models import ParkingSpot
+from django.http import JsonResponse
+from .models import ParkingLocation, ParkingSpot  # ตรวจสอบว่า models อยู่ในแอปเดียวกัน
+
 
 def get_spot_details(request):
     location_id = request.GET.get('location_id')
-    spot_number = request.GET.get('spot')
-
-    # ตรวจสอบว่า location_id และ spot_number ถูกส่งมาหรือไม่
-    if not location_id or not spot_number:
-        return JsonResponse({'error': 'กรุณาระบุ location_id และ spot_number'}, status=400)
+    spot_id = request.GET.get('spot_id')
     
+
+    if not location_id or not spot_id:
+        return JsonResponse({'error': 'Missing location_id or spot_id'}, status=400)
+
     try:
-        spot = ParkingSpot.objects.get(location_id=location_id, spot_number=spot_number)
-        response_data = {
-            'spot_number': spot.spot_number,
-            'is_available': spot.is_available,
-            'reserved_by': spot.reserved_by.username if spot.reserved_by else 'ว่าง',
-            'license_plate': spot.license_plate if spot.license_plate else None,
-        }
-        return JsonResponse(response_data)
-    except ParkingSpot.DoesNotExist:
-        return JsonResponse({'error': 'ไม่พบข้อมูลช่องจอดนี้'}, status=404)
+        location = ParkingLocation.objects.get(id=location_id)
+        spot = ParkingSpot.objects.get(id=spot_id, location=location)
+    except (ParkingLocation.DoesNotExist, ParkingSpot.DoesNotExist):
+        return JsonResponse({'error': 'Invalid location or spot ID'}, status=400)
+
+    return JsonResponse({
+        'id': spot.id,
+        'is_available': spot.is_available,
+        'reserved_by': spot.reserved_by.username if spot.reserved_by else None,
+        'license_plate': spot.license_plate,
+    })
+
 
 
 
@@ -614,11 +680,18 @@ def hospital_parking(request, date):
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render
 @login_required
-def sc_parking(request, date):
+def sc_parking(request):
     context = {
-        'date': date,
+        'spots': ParkingSpot.objects.filter(location__id = 1),
         'location': 'ตึกวิจัย',
+        'locations': ParkingLocation.objects.all(),
     }
+    if request.method == 'POST':
+        location = request.POST.get('location')
+        location = ParkingLocation.objects.get(pk=int(location))
+        context['location'] = location
+        context['spots'] = ParkingSpot.objects.filter(location = location)
+    
     return render(request, 'easypark/sc_parking.html', context)
 
 from django.contrib.auth.decorators import login_required
