@@ -5,11 +5,12 @@ from .utils import update_parking_status  # ฟังก์ชันสำหร
 
 # ตัวอย่าง ROIs (ขึ้นอยู่กับ Location)
 rois = {
-    "ตึกวิจัย": [
-        (1, 400, 400, 200, 200),
+    "อ้อมใหญ่": [
+        (1, 50, 220, 200, 200),   #spot x y width height
         (2, 700, 200, 200, 200),
+        (3, 1000, 200, 200, 200),
     ],
-    "โรงพยาบาล": [
+    "วงเวียนอุบล": [
         (1, 300, 300, 200, 200),
         (2, 600, 200, 200, 200),
     ],
@@ -50,7 +51,6 @@ def start_detection_in_background():
     """
     def detect():
         print("Starting detection in the background...")
-        # เพิ่ม logic การตรวจจับรถของคุณที่นี่
     thread = threading.Thread(target=detect, daemon=True)
     thread.start()
 

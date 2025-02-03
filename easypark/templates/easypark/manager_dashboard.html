@@ -23,7 +23,7 @@
             <!-- Profile (ด้านขวาสุด) -->
             <div class="flex items-center space-x-4">
                 <span class="text-white">{{ request.user.username }}</span> <!-- แสดงชื่อผู้ใช้ -->
-                <a href="/profile" class="text-white">Profile</a>
+                <a href="{% url 'profile' %}" class="text-white">Profile</a>
                 <form action="{% url 'logout' %}" method="post">
                     {% csrf_token %}
                     <button type="submit" class="btn btn-danger">Logout</button>
@@ -34,6 +34,7 @@
 
     <div class="container mx-auto p-8 bg-white rounded-lg shadow-lg">
         <h1 class="text-3xl font-bold text-center mb-6">Manager Dashboard</h1>
+        <h1>Welcome to the Dashboard for {{ current_location }}</h1>
 
         <!-- Reservation List -->
         <h2 class="text-xl font-semibold mb-4">User Reservations</h2>
@@ -44,6 +45,7 @@
                     <th class="border px-4 py-2">User</th>
                     <th class="border px-4 py-2">Parking Spot</th>
                     <th class="border px-4 py-2">Status</th>
+                    <th class="border px-4 py-2">Date</th>
                     <th class="border px-4 py-2">Location</th>
                     <th class="border px-4 py-2">Actions</th>
                 </tr>
@@ -55,6 +57,7 @@
                     <td class="border px-4 py-2">{{ reservation.user.username }}</td>
                     <td class="border px-4 py-2">{{ reservation.parking_spot.spot_number }}</td>
                     <td class="border px-4 py-2">{{ reservation.status }}</td>
+                    <td class="border px-4 py-2">{{ reservation.reservation_date }}</td>
                     <td class="border px-4 py-2">{{ reservation.parking_spot.location.name }}</td>
                     <td class="border px-4 py-2">
                         <a href="{% url 'cancel_reservation' reservation.id %}"
@@ -68,15 +71,7 @@
         <!-- Parking Spot List -->
         <div class="container mx-auto p-4">
             <h2 class="text-xl font-semibold mt-8 mb-4">Parking Spots</h2>
-            <div class="mb-4">
-                <label for="location" class="block text-sm font-medium text-gray-700">Select Location:</label>
-                <select id="location" class="form-select block w-full mt-1 p-2 border border-gray-300 rounded-md">
-                    <option value="">Select a location</option>
-                    {% for location in locations %}
-                    <option value="{{ location.id }}">{{ location.name }}</option>
-                    {% endfor %}
-                </select>
-            </div>
+            
 
             <!-- Table for Showing Parking Spots -->
             <!-- Parking Spot List -->
@@ -113,8 +108,14 @@
                             {% endif %}
                         </td>
                         <td class="border px-4 py-2">
-                            <a href="{% url 'suspend_parking_spot' spot.id %}"
-                                class="text-blue-500 hover:underline">Suspend</a>
+                            <button class="text-blue-500 hover:underline suspend-btn" data-spot-id="{{ spot.id }}"
+                                data-action="{% if spot.is_available %}suspend{% else %}restore{% endif %}">
+                                {% if spot.is_available %}
+                                Suspend
+                                {% else %}
+                                Restore
+                                {% endif %}
+                            </button>
                         </td>
                     </tr>
                     {% endfor %}
@@ -129,19 +130,12 @@
 
 
     <!-- camera feed -->
+    <!-- Live Camera Feed -->
     <div class="mt-8 max-w-2xl mx-auto bg-white p-6 rounded-lg shadow-lg">
         <h2 class="text-xl font-semibold mb-4 text-gray-700 text-center">Live Camera Feed</h2>
 
         <!-- Dropdown สำหรับเลือกสถานที่ -->
-        <div class="mb-6">
-            <label for="location-select" class="block text-base font-medium text-gray-600 mb-2">Select Location:</label>
-            <select id="location-select" class="block w-full border-gray-300 rounded-md shadow-sm p-3 text-gray-700">
-                <option value="">Select a location</option>
-                {% for location in locations %}
-                <option value="{{ location.id }}">{{ location.name }}</option>
-                {% endfor %}
-            </select>
-        </div>
+        
 
         <!-- พื้นที่สำหรับแสดง Live Stream -->
         <div class="overflow-hidden rounded-lg border border-gray-300 bg-gray-100">
@@ -150,12 +144,93 @@
     </div>
 
     <script>
-        document.getElementById('location-select').addEventListener('change', function () {
-            const locationId = this.value;
+        document.addEventListener('DOMContentLoaded', function () {
             const liveStream = document.getElementById('live-stream');
-            liveStream.src = locationId ? `/stream/${locationId}/` : '';
+            const locationSelect = document.getElementById('location-select');
+            const cameraSection = document.getElementById('camera-section');
+            const startBtn = document.getElementById('start-btn');
+            const loginModal = document.getElementById('login-modal');
+            const modalBackground = document.getElementById('modal-background');
+            const isAuthenticated = "{{ user.is_authenticated|yesno:'true,false' }}";
+            
+            liveStream.src = '/stream/{{ location.id }}/';
+
+            locationSelect.addEventListener('change', function () {
+                liveStream.src = `/stream/${this.value}/`;
+            });
+
+            startBtn.addEventListener('click', function () {
+                if (isAuthenticated === "true") {
+                    cameraSection.style.display = "block";
+                    cameraSection.style.maxHeight = "1000px";
+                    cameraSection.style.opacity = "1";
+                    cameraSection.scrollIntoView({ behavior: 'smooth' });
+                } else {
+                    loginModal.style.display = "block";
+                    modalBackground.style.display = "block";
+                }
+            });
+
+            // ปิด modal เมื่อกดที่พื้นหลัง
+            modalBackground.addEventListener('click', function () {
+                loginModal.style.display = "none";
+                modalBackground.style.display = "none";
+            });
         });
+        document.addEventListener('DOMContentLoaded', function () {
+            const tbody = document.getElementById('parking-spot-body');
+
+            // ใช้ Event Delegation กับ tbody
+            tbody.addEventListener('click', function (e) {
+                if (e.target.classList.contains('suspend-btn')) {
+                    e.preventDefault();  // ป้องกันการ reload หน้าเมื่อคลิก
+
+                    const button = e.target;
+                    const spotId = button.getAttribute('data-spot-id');
+                    const action = button.getAttribute('data-action');
+
+                    suspendRestoreSpot(spotId, action, button);
+                }
+            });
+
+            function suspendRestoreSpot(spotId, action, button) {
+                // ส่งข้อมูลการเปลี่ยนแปลงสถานะไปยัง server
+                fetch(`/suspend_parking_spot/${spotId}/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                    },
+                    body: JSON.stringify({ action, spot_id: spotId })
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            // อัปเดต UI ตามสถานะที่เปลี่ยน
+                            const row = button.closest('tr');
+                            const statusCell = row.querySelector('td:nth-child(2)');
+                            const actionCell = row.querySelector('td:nth-child(5)');
+
+                            if (data.is_available) {
+                                statusCell.textContent = 'Available';
+                                button.textContent = 'Suspend';
+                                button.setAttribute('data-action', 'suspend');
+                            } else {
+                                statusCell.textContent = 'Unavailable';
+                                button.textContent = 'Restore';
+                                button.setAttribute('data-action', 'restore');
+                            }
+                        } else {
+                            console.error('Failed to update parking spot status:', data.message);
+                        }
+                    })
+                    .catch(error => console.error('Error:', error));
+            }
+        });
+
+
     </script>
+
 
 
 
@@ -260,11 +335,6 @@
         });
 
     </script>
-
-
-
-
-
 
 </body>
 

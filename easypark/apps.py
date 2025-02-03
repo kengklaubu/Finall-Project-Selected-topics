@@ -6,5 +6,3 @@ class EasyparkConfig(AppConfig):
 
     def ready(self):
         import easypark.signals  # เชื่อมต่อ Signal
-
-

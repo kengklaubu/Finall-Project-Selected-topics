@@ -3,13 +3,14 @@ from . import views
 from django.contrib.auth.views import LoginView
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import views as auth_views
-from django.contrib import admin
+
+
 
 urlpatterns = [
     path('', views.homepage, name='homepage'),
     path('redirect-parking/', login_required(views.redirect_parking), name='redirect_parking'),
     path('hospital-parking/<str:date>/', login_required(views.hospital_parking), name='hospital_parking'),
-    path('sc-parking/<str:date>/', login_required(views.sc_parking), name='sc_parking'),
+    path('sc-parking/', login_required(views.sc_parking), name='sc_parking'),
     path('CHLAB-Parking/<str:date>/', login_required(views.CHLAB_Parking), name='CHLAB_Parking'),
     path('CLB_4/<str:date>/', login_required(views.CLB_4), name='CLB_4'),
     path('CLB_5/<str:date>/', login_required(views.CLB_5), name='CLB_5'),
@@ -34,13 +35,15 @@ urlpatterns = [
     path('reservation_history/', views.reservation_history, name='reservation_history'),
     path('login/', views.login_page, name='login_page'),  
     path('admin_dashboard/', views.admin_dashboard, name='admin_dashboard'),  
-    path('manager_dashboard/', views.manager_dashboard, name='manager_dashboard'),
+    path('manager_dashboard/<int:location_id>/', views.manager_dashboard, name='manager_dashboard'),
     path('manager/reservation/cancel/<int:reservation_id>/', views.cancel_reservation, name='cancel_reservation'),
     #path('manager/parking/suspend/<int:spot_id>/', views.suspend_parking_spot, name='suspend_parking_spot'),
     path('get_parking_spots/<int:location_id>/', views.get_parking_spots, name='get_parking_spots'),
     path('suspend_parking_spot/<int:spot_id>/', views.suspend_parking_spot, name='suspend_parking_spot'),
     path('start-detection/', views.start_detection, name='start_detection'),
-     path('stream/<int:location_id>/', views.stream_video, name='stream_video'),
+    path('live/<int:location_id>/',views.stream_video, name='live_video'),
+    path('stream/<int:location_id>/',views.video_feed, name='video_feed'),
+    
     
 
 

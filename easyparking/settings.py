@@ -11,6 +11,8 @@ https://docs.djangoproject.com/en/5.0/ref/settings/
 """
 
 from pathlib import Path
+import os
+from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -42,8 +44,7 @@ LOGIN_URL = 'login'  # URL ของหน้า login
 #SESSION_ENGINE = 'django.contrib.sessions.backends.file'
 
 
-import os
-from dotenv import load_dotenv
+
 
 load_dotenv()
 
@@ -60,6 +61,27 @@ PASSWORD_RESET_TIMEOUT_DAYS = 1  # กำหนดให้ลิงก์หม
 
 AUTH_USER_MODEL = 'easypark.CustomUser'
 
+'''LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['console'],
+            'level': 'DEBUG',
+        },
+    },
+}'''
+
+
+
+
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 
 
@@ -92,9 +114,9 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = "easyparking.urls"
 
-import os
 
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+
 
 TEMPLATES = [
     {
@@ -176,11 +198,9 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.0/howto/static-files/
 
-import os
-from pathlib import Path
 
-# BASE_DIR จะอ้างอิงถึง root directory ของโปรเจค
-BASE_DIR = Path(__file__).resolve().parent.parent
+
+
 
 STATIC_URL = '/static/'
 STATICFILES_DIRS = [
