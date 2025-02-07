@@ -99,7 +99,7 @@ def admin_dashboard(request):
 from django.shortcuts import render, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponseForbidden
-from .models import ParkingLocation ,Reservation, ParkingSpot
+from .models import ParkingLocation ,Reservation, ParkingSpot,Booking
 
 @login_required
 def manager_dashboard(request, location_id):
@@ -112,6 +112,7 @@ def manager_dashboard(request, location_id):
 
     # ดึงข้อมูลที่ต้องการแสดงในหน้า dashboard
     reservations = Reservation.objects.filter(parking_spot__location=location)
+    bookings = Booking.objects.filter(parking_spot__location=location)
     parking_spots = ParkingSpot.objects.filter(location=location)
 
     # ส่งข้อมูลทั้งหมดไปยัง template
@@ -119,8 +120,62 @@ def manager_dashboard(request, location_id):
         'location': location,
         'reservations': reservations,
         'parking_spots': parking_spots,
-        'current_location': location.name  # เพิ่มข้อมูล location ที่กำลังดู
+        'current_location': location.name,
+        'bookings': bookings
     })
+
+from django.shortcuts import render, redirect
+from django.contrib.auth.decorators import login_required
+from django.contrib import messages
+from .models import ParkingLocation
+from .forms import ParkingLocationForm
+
+@login_required
+def manager_add_location(request):
+    location = None  # กำหนดค่าเริ่มต้นให้ location เป็น None
+    if request.method == "POST":
+        form = ParkingLocationForm(request.POST, request.FILES)
+        if form.is_valid():
+            location = form.save(commit=False)
+            location.owner = request.user
+            location.save()
+            messages.success(request, "✅ เพิ่มสถานที่จอดรถเรียบร้อยแล้ว!")
+
+            return redirect('manager_dashboard', location.id)  # ✅ ใช้ location.id ที่เพิ่งบันทึก
+    else:
+        form = ParkingLocationForm()
+
+    return render(request, 'easypark/manager_add_location.html', {
+        'form': form,
+        'location': location  # ✅ ส่ง location ไปที่ template
+    })
+
+
+
+
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+import json
+
+@csrf_exempt
+def update_parking_spot_position(request):
+    if request.method == "POST":
+        try:
+            data = json.loads(request.body)
+            spot_id = data.get("spot_id")
+            x_position = data.get("x_position")
+            y_position = data.get("y_position")
+
+            spot = ParkingSpot.objects.get(id=spot_id)
+            spot.x_position = x_position
+            spot.y_position = y_position
+            spot.save()
+
+            return JsonResponse({"success": True})
+        except Exception as e:
+            return JsonResponse({"success": False, "error": str(e)})
+    
+    return JsonResponse({"success": False, "error": "Invalid request method"})
 
 
 
@@ -348,12 +403,29 @@ def parking_location(request, location_slug):
 
 
 
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
+from django.contrib import messages
+from .models import Reservation,Booking # นำเข้า Model ที่เก็บประวัติการจอง
 
 @login_required
-def profile_page(request):
-    return render(request, 'easypark/profile.html', {'user': request.user})
+def profile(request):
+    reservations = Reservation.objects.filter(user=request.user)  # ดึงประวัติการจองของผู้ใช้
+    bookings = Booking.objects.filter(user=request.user)
+    return render(request, 'easypark/profile.html', {'reservations': reservations,'bookings':bookings})
+
+@login_required
+def update_profile(request):
+    if request.method == "POST":
+        user = request.user
+        user.first_name = request.POST.get('first_name', user.first_name)
+        user.last_name = request.POST.get('last_name', user.last_name)
+        user.email = request.POST.get('email', user.email)
+        user.save()
+        messages.success(request, "Profile updated successfully!")
+        return redirect('profile')
+    return redirect('profile')
+
 
 from django.shortcuts import render
 from easypark.models import Reservation
@@ -507,31 +579,30 @@ def get_parking_status(request):
 
 
 from django.http import JsonResponse
-from .models import ParkingSpot
-from django.http import JsonResponse
-from .models import ParkingLocation, ParkingSpot  # ตรวจสอบว่า models อยู่ในแอปเดียวกัน
-
+from django.shortcuts import get_object_or_404
+from .models import ParkingLocation, ParkingSpot
 
 def get_spot_details(request):
     location_id = request.GET.get('location_id')
     spot_id = request.GET.get('spot_id')
-    
 
+    # ตรวจสอบค่าที่ส่งเข้ามา
     if not location_id or not spot_id:
         return JsonResponse({'error': 'Missing location_id or spot_id'}, status=400)
 
     try:
-        location = ParkingLocation.objects.get(id=location_id)
-        spot = ParkingSpot.objects.get(id=spot_id, location=location)
-    except (ParkingLocation.DoesNotExist, ParkingSpot.DoesNotExist):
+        location = get_object_or_404(ParkingLocation, id=location_id)
+        spot = get_object_or_404(ParkingSpot, id=spot_id, location=location)
+    except:
         return JsonResponse({'error': 'Invalid location or spot ID'}, status=400)
 
+    # ✅ เพิ่ม spot_number ลงไปใน response
     return JsonResponse({
-        'id': spot.id,
+        'spot_number': spot.spot_number,  # แก้จาก 'id': spot.id
         'is_available': spot.is_available,
         'reserved_by': spot.reserved_by.username if spot.reserved_by else None,
-        'license_plate': spot.license_plate,
     })
+
 
 
 
@@ -611,17 +682,20 @@ from django.contrib.auth.decorators import login_required
 @login_required
 def confirm_reservation(request):
     if request.method == 'POST':
-        # ดึงรายละเอียดการจองจาก POST request
+        print(request.POST)  # ตรวจสอบค่าที่ถูกส่งมาใน Terminal
+        
         spot_number = request.POST.get('spot_number')
         location = request.POST.get('location')
 
         context = {
             'spot_number': spot_number,
             'location': location,
-            'reservation_time': '08:00 - 08:15',  # เวลาจอดรถ (สามารถเปลี่ยนตามเงื่อนไขได้)
+            'reservation_time': '08:00 - 08:15',
         }
         return render(request, 'easypark/reservation_confirmation.html', context)
     return redirect('homepage')
+
+
 
 
 from django.shortcuts import redirect
@@ -629,53 +703,10 @@ def cancel_reservation(request):
     # Logic สำหรับการยกเลิกการจอง
     return redirect('homepage')
 
-from django.shortcuts import redirect
-@login_required
-def redirect_parking(request):
-    # รับค่า location และ date จาก request
-    location = request.GET.get('location')
-    date = request.GET.get('date')
 
-    # ตรวจสอบว่ามี location และ date หรือไม่
-    if not location or not date:
-        # หากไม่มี location หรือ date ให้ส่งกลับไปหน้า error หรือแจ้งเตือน
-        return render(request, 'easypark/error.html', {'message': 'กรุณาเลือกสถานที่จอดรถและวันที่เข้าจอด'})
 
-    # ตรวจสอบ location และเปลี่ยนเส้นทางไปยัง view ที่เหมาะสม
-    if location == 'โรงพยาบาล':
-        return redirect('hospital_parking', date=date)
-    elif location == 'ตึกวิจัย':
-        return redirect('sc_parking', date=date)
-    elif location == 'อาคารเรียนรวม 4':
-        return redirect('CLB_4', date=date)
-    elif location == 'อาคารเรียนรวม 5':
-        return redirect('CLB_5', date=date)
-    elif location == 'อาคารศิลปะศาสตร์':
-        return redirect('LA_Parking', date=date)
-    elif location == 'ตึกบริหาร':
-        return redirect('Bus_Parking', date=date)
-    elif location == 'อาคาร Co-work':
-        return redirect('Cowork_Parking', date=date)
-    elif location == 'ตึกเคมี':
-        return redirect('CHLAB_Parking', date=date)
-    elif location == 'ตึกพยาบาล':
-        return redirect('NU_Parking', date=date)
-    elif location == 'ตึกเภสัช':
-        return redirect('PH_Parking', date=date)
-    else:
-        return redirect('homepage')
 
-    
-from django.contrib.auth.decorators import login_required
-from django.shortcuts import render
-@login_required
-def hospital_parking(request, date):
-    # นำข้อมูลที่จอดรถสำหรับโรงพยาบาลมาแสดง
-    context = {
-        'date': date,
-        'location': 'โรงพยาบาล',
-    }
-    return render(request, 'easypark/hospital_parking.html', context)
+
 
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render
@@ -694,93 +725,66 @@ def sc_parking(request):
     
     return render(request, 'easypark/sc_parking.html', context)
 
+
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
-from django.shortcuts import render
+from django.http import JsonResponse
+from django.contrib import messages
+from .models import ParkingSpot, ParkingLocation
+
 @login_required
-def CLB_4(request, date):
-    # นำข้อมูลที่จอดรถสำหรับลานจอด C มาแสดง
-    context = {
-        'date': date,
-        'location': 'อาคารเรียนรวม 4',
-    }
-    return render(request, 'easypark/CLB_4.html', context)
+def add_parking_spot(request, location_id):
+    location = get_object_or_404(ParkingLocation, id=location_id)
 
-from django.contrib.auth.decorators import login_required
-from django.shortcuts import render
-@login_required
-def CLB_5(request, date):
-    context = {
-        'date': date,
-        'location': 'อาคารเรียนรวม 5',
-    }
-    return render(request, 'easypark/CLB_5.html', context)
+    # ตรวจสอบสิทธิ์ว่าเป็นเจ้าของสถานที่นี้
+    if request.user != location.owner:
+        return JsonResponse({"success": False, "error": "คุณไม่มีสิทธิ์เพิ่มช่องจอดที่นี่"}, status=403)
 
-from django.contrib.auth.decorators import login_required
-from django.shortcuts import render
-@login_required
-def LA_Parking(request, date):
-    context = {
-        'date': date,
-        'location': 'อาคารศิลปะศาสตร์',
-    }
-    return render(request, 'easypark/LA_Parking.html', context)
+    if request.method == "POST":
+        spot_number = request.POST.get("spot_number")
 
-from django.contrib.auth.decorators import login_required
-from django.shortcuts import render
-@login_required
-def Bus_Parking(request, date):
-    context = {
-        'date': date,
-        'location': 'ตึกบริหาร',
-    }
-    return render(request, 'easypark/Bus_Parking.html', context)
+        # ตรวจสอบว่าช่องจอดนี้มีอยู่แล้วหรือไม่
+        if ParkingSpot.objects.filter(location=location, spot_number=spot_number).exists():
+            return JsonResponse({"success": False, "error": "❌ ช่องจอดนี้มีอยู่แล้ว"}, status=400)
 
-from django.contrib.auth.decorators import login_required
-from django.shortcuts import render
-@login_required
-def Cowork_Parking(request, date):
-    context = {
-        'date': date,
-        'location': 'อาคาร Co-work',
-    }
-    return render(request, 'easypark/Cowork_Parking.html', context)
+        # บันทึกข้อมูลลงฐานข้อมูล
+        new_spot = ParkingSpot.objects.create(
+            location=location,
+            spot_number=spot_number,
+            is_available=True
+        )
 
-from django.contrib.auth.decorators import login_required
-from django.shortcuts import render
-@login_required
-def CHLAB_Parking(request, date):
-    context = {
-        'date': date,
-        'location': 'ตึกเคมี',
-    }
-    return render(request, 'easypark/CHLAB_Parking.html', context)
+        return JsonResponse({
+            "success": True,
+            "message": "✅ เพิ่มช่องจอดเรียบร้อยแล้ว!",
+            "spot_id": new_spot.id,
+            "spot_number": new_spot.spot_number
+        })
 
-
-
-from django.contrib.auth.decorators import login_required
-from django.shortcuts import render
-@login_required
-def NU_Parking(request, date):
-    context = {
-        'date': date,
-        'location': 'ตึกพยาบาล',
-    }
-    return render(request, 'easypark/NU_Parking.html', context)
-
-from django.contrib.auth.decorators import login_required
-from django.shortcuts import render
-@login_required
-def PH_Parking(request, date):
-    context = {
-        'date': date,
-        'location': 'ตึกเภสัช',
-    }
-    return render(request, 'easypark/PH_Parking.html', context)
+    return JsonResponse({"success": False, "error": "❌ วิธีการส่งข้อมูลไม่ถูกต้อง"}, status=400)
 
 
 
 
 
+
+
+
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+import json
+from .models import ParkingSpot
+
+@csrf_exempt  # ✅ ปิด CSRF ตรวจสอบเฉพาะ POST
+def delete_parking_spot(request, spot_id):
+    if request.method == "POST":
+        try:
+            spot = ParkingSpot.objects.get(id=spot_id)
+            spot.delete()
+            return JsonResponse({"success": True, "message": "ช่องจอดถูกลบแล้ว!"})
+        except ParkingSpot.DoesNotExist:
+            return JsonResponse({"success": False, "error": "ไม่พบช่องจอดที่ต้องการลบ!"})
+    return JsonResponse({"success": False, "error": "ไม่รองรับการร้องขอแบบนี้!"})
 
 
 

@@ -1,340 +1,536 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="th">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Manager Dashboard</title>
+    <title>Manager Dashboard | Easy Parking</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600&display=swap" rel="stylesheet">
+
+    <style>
+        body {
+            font-family: 'Kanit', sans-serif;
+        }
+    </style>
 </head>
 
 <body class="bg-gray-100">
     {% load static %}
-    <nav class="bg-gray-800 p-4">
-        <div class="flex items-center justify-between max-w-7xl mx-auto">
-            <!-- Logo (ด้านซ้ายสุด) -->
-            <div class="text-white font-bold text-xl">
-                <a href="/" class="flex items-center">
-                    <img src="{% static 'easypark/image/logo.png' %}" alt="Easy Parking Logo" class="h-8 mr-2">
-                    EasyPark
-                </a>
+    <!-- Navbar -->
+    <nav class="bg-gray-800 p-4 shadow-md">
+        <div class="max-w-7xl mx-auto flex items-center justify-between">
+            <div class="text-white font-bold text-xl flex items-center">
+                <img src="{% static 'easypark/image/logo.png' %}" alt="Easy Parking Logo" class="h-8 mr-2">
+                EasyPark
             </div>
-
-            <!-- Profile (ด้านขวาสุด) -->
             <div class="flex items-center space-x-4">
-                <span class="text-white">{{ request.user.username }}</span> <!-- แสดงชื่อผู้ใช้ -->
-                <a href="{% url 'profile' %}" class="text-white">Profile</a>
+                <span class="text-white">👤 {{ request.user.username }}</span>
+                <a href="{% url 'profile' %}" class="text-white hover:underline">โปรไฟล์</a>
+                <a href="{% url 'manager_add_location' %}" class="text-white hover:underline">เพิ่มสถานที่</a>
                 <form action="{% url 'logout' %}" method="post">
                     {% csrf_token %}
-                    <button type="submit" class="btn btn-danger">Logout</button>
+                    <button type="submit"
+                        class="bg-red-500 text-white py-2 px-4 rounded-lg hover:bg-red-600 transition">
+                        🚪 ออกจากระบบ
+                    </button>
                 </form>
             </div>
         </div>
     </nav>
 
-    <div class="container mx-auto p-8 bg-white rounded-lg shadow-lg">
-        <h1 class="text-3xl font-bold text-center mb-6">Manager Dashboard</h1>
-        <h1>Welcome to the Dashboard for {{ current_location }}</h1>
+    <!-- Dashboard Header -->
+    <div class="container mx-auto mt-8">
+        <h1 class="text-3xl font-bold text-gray-800 text-center mb-6">📊 Manager Dashboard</h1>
+        <h2 class="text-xl font-semibold text-center text-gray-600">📍 {{ current_location }}</h2>
+    </div>
 
-        <!-- Reservation List -->
-        <h2 class="text-xl font-semibold mb-4">User Reservations</h2>
-        <table class="min-w-full table-auto border-collapse">
+    <!-- Reservation History -->
+    <div class="container mx-auto mt-8 bg-white p-6 rounded-lg shadow-lg">
+        <h2 class="text-2xl font-bold text-gray-800 mb-4">📅 ประวัติการจอง</h2>
+        <table class="min-w-full table-auto border-collapse shadow-md rounded-lg overflow-hidden">
             <thead>
-                <tr>
-                    <th class="border px-4 py-2">Reservation ID</th>
-                    <th class="border px-4 py-2">User</th>
-                    <th class="border px-4 py-2">Parking Spot</th>
-                    <th class="border px-4 py-2">Status</th>
-                    <th class="border px-4 py-2">Date</th>
-                    <th class="border px-4 py-2">Location</th>
-                    <th class="border px-4 py-2">Actions</th>
+                <tr class="bg-gray-700 text-white">
+                    <th class="p-3">ID</th>
+                    <th class="p-3">ผู้ใช้</th>
+                    <th class="p-3">ช่องจอด</th>
+                    <th class="p-3">สถานะ</th>
+                    <th class="p-3">วันที่จอง</th>
+                    <th class="p-3">สถานที่</th>
+                    <th class="p-3">การดำเนินการ</th>
                 </tr>
             </thead>
             <tbody>
-                {% for reservation in reservations %}
-                <tr>
-                    <td class="border px-4 py-2">{{ reservation.id }}</td>
-                    <td class="border px-4 py-2">{{ reservation.user.username }}</td>
-                    <td class="border px-4 py-2">{{ reservation.parking_spot.spot_number }}</td>
-                    <td class="border px-4 py-2">{{ reservation.status }}</td>
-                    <td class="border px-4 py-2">{{ reservation.reservation_date }}</td>
-                    <td class="border px-4 py-2">{{ reservation.parking_spot.location.name }}</td>
-                    <td class="border px-4 py-2">
-                        <a href="{% url 'cancel_reservation' reservation.id %}"
-                            class="text-red-500 hover:underline">Cancel</a>
+                {% for booking in bookings %}
+                <tr class="border-b border-gray-300 text-center">
+                    <td class="p-3">{{ booking.id }}</td>
+                    <td class="p-3">{{ booking.user.username }}</td>
+                    <td class="p-3 font-semibold text-blue-600">#{{ booking.parking_spot.spot_number }}</td>
+                    <td class="p-3">
+                        <span class="px-3 py-1 rounded-md text-white 
+                            {% if booking.status == 'completed' %} bg-green-500 
+                            {% elif booking.status == 'active' %} bg-yellow-500 
+                            {% else %} bg-red-500 {% endif %}">
+                            {{ booking.status }}
+                        </span>
                     </td>
+                    <td class="p-3">{{ booking.reservation_date }}</td>
+                    <td class="p-3">{{ booking.parking_spot.location.name }}</td>
+                    <td class="p-3">
+                        <a href="{% url 'cancel_reservation' booking.id %}" class="text-red-500 hover:underline">❌
+                            ยกเลิก</a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7" class="text-center p-4 text-gray-500">❌ ไม่มีประวัติการจอง</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Parking Spot List -->
+    <div class="container mx-auto mt-8 bg-white p-6 rounded-lg shadow-lg">
+        <h2 class="text-2xl font-bold text-gray-800 mb-4">🅿️ รายการช่องจอด</h2>
+
+        <!-- ปุ่มเพิ่มช่องจอด -->
+
+        <button id="add-spot-btn"
+            class="mb-4 bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition">
+            ➕ เพิ่มช่องจอด
+        </button>
+
+        <!-- โมดอลสำหรับเพิ่มช่องจอด -->
+        <div id="add-spot-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+            <div class="bg-white p-6 rounded-lg shadow-lg w-96">
+                <h3 class="text-xl font-bold mb-4 text-gray-800">เพิ่มช่องจอดใหม่</h3>
+                <form id="add-spot-form" method="POST" action="{% url 'add_parking_spot' location.id %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="location_id" value="{{ location.id }}">
+
+                    <label for="spot_number" class="block text-gray-700 font-semibold">หมายเลขช่องจอด:</label>
+                    <input type="number" id="spot_number" name="spot_number" required
+                        class="w-full px-4 py-2 border rounded-md">
+
+                    <p id="error-message" class="text-red-500 text-sm mt-2"></p> <!-- ✅ แสดงข้อความผิดพลาด -->
+
+                    <button type="submit"
+                        class="w-full bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-500 transition">
+                        ✅ เพิ่มช่องจอด
+                    </button>
+                </form>
+
+                <!-- ปุ่มปิดโมดอล -->
+                <button id="close-modal"
+                    class="mt-4 w-full bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition">
+                    ❌ ยกเลิก
+                </button>
+            </div>
+        </div>
+        <!-- ✅ Toast Notification -->
+        <div id="toast-container" class="fixed top-4 right-4 space-y-2 z-50"></div>
+
+
+        <!-- ตารางรายการช่องจอด -->
+        <table class="min-w-full table-auto border-collapse shadow-md rounded-lg overflow-hidden">
+            <thead>
+                <tr class="bg-gray-700 text-white">
+                    <th class="p-3">ช่องจอด</th>
+                    <th class="p-3">สถานะ</th>
+                    <th class="p-3">ผู้จอง</th>
+                    <th class="p-3">การดำเนินการ</th>
+                </tr>
+            </thead>
+            <tbody id="parking-spot-body">
+                {% for spot in parking_spots %}
+                <tr class="border-b border-gray-300 text-center">
+                    <td class="p-3 font-semibold text-blue-600">#{{ spot.spot_number }}</td>
+                    <td class="p-3 status-text">
+                        <span
+                            class="px-3 py-1 rounded-md text-white {% if spot.is_available %} bg-green-500 {% else %} bg-red-500 {% endif %}">
+                            {{ spot.is_available|yesno:"✅ ว่าง,❌ ไม่ว่าง" }}
+                        </span>
+                    </td>
+                    <td class="p-3">{{ spot.reserved_by.username|default:"-" }}</td>
+                    <td class="p-3">
+                        <button
+                            class="suspend-btn bg-blue-500 text-white px-3 py-1 rounded-lg hover:bg-blue-600 transition"
+                            data-spot-id="{{ spot.id }}"
+                            data-action="{% if spot.is_available %}suspend{% else %}restore{% endif %}">
+                            {% if spot.is_available %}🚫 ระงับ{% else %}✅ คืนสถานะ{% endif %}
+                        </button>
+                        <button
+                            class="delete-btn bg-red-500 text-white px-3 py-1 rounded-lg hover:bg-red-600 transition ml-2"
+                            data-spot-id="{{ spot.id }}">
+                            🗑️ ลบ
+                        </button>
+                    </td>
+
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5" class="text-center p-4 text-gray-500">❌ ไม่มีช่องจอด</td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
 
-        <!-- Parking Spot List -->
-        <div class="container mx-auto p-4">
-            <h2 class="text-xl font-semibold mt-8 mb-4">Parking Spots</h2>
-            
 
-            <!-- Table for Showing Parking Spots -->
-            <!-- Parking Spot List -->
-            <!-- Table for Showing Parking Spots -->
-            <!-- Table for Showing Parking Spots -->
-            <table class="min-w-full table-auto border-collapse">
-                <thead>
-                    <tr>
-                        <th class="border px-4 py-2">Spot Number</th>
-                        <th class="border px-4 py-2">Availability</th>
-                        <th class="border px-4 py-2">Reserved By</th>
-                        <th class="border px-4 py-2">License Plate</th>
-                        <th class="border px-4 py-2">Actions</th>
-                    </tr>
-                </thead>
-                <tbody id="parking-spot-body">
-                    {% for spot in parking_spots %}
-                    <tr>
-                        <td class="border px-4 py-2">{{ spot.spot_number }}</td>
-                        <td class="border px-4 py-2">{{ spot.is_available|yesno:"Available,Unavailable" }}</td>
-                        <td class="border px-4 py-2">
-                            {% if spot.reserved_by %}
-                            {{ spot.reserved_by.username }} <!-- แสดง username -->
-                            {% else %}
-                            None
-                            {% endif %}
-                        </td>
+        <table class="min-w-full table-auto border-collapse shadow-md rounded-lg overflow-hidden">
+            <div class="flex w-full justify-around">
+                <!-- ฝั่งแสดงรูป (ที่จอดรถ) -->
+                <div class="w-1/2 mt-8 max-w-2xl mx-auto bg-gray-300 p-6 rounded-lg shadow-xl">
+                    <svg id="parking-map" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 300" width="100%"
+                        height="100%">
+                        <image href="{{ location.image.url }}" x="0" y="0" width="500" height="300" />
+                        {% for spot in parking_spots %}
+                        <g id="spot-{{ spot.id }}" data-spot-id="{{ spot.id }}" class="draggable"
+                            transform="translate({{ spot.x_position }}, {{ spot.y_position }})">
+                            <!-- ที่จอดว่าง -->
+                            <path id="spot-path-green-{{ spot.id }}" fill="#22db14"
+                                d="M64 80c-8.8 0-16 7.2-16 16l0 320c0 8.8 7.2 16 16 16l320 0c8.8 0 16-7.2 16-16l0-320c0-8.8-7.2-16-16-16L64 80zM0 96C0 60.7 28.7 32 64 32l320 0c35.3 0 64 28.7 64 64l0 320c0 35.3-28.7 64-64 64L64 480c-35.3 0-64-28.7-64-64L0 96zM337 209L209 337c-9.4 9.4-24.6 9.4-33.9 0l-64-64c-9.4-9.4-9.4-24.6 0-33.9s24.6-9.4 33.9 0l47 47L303 175c9.4-9.4 24.6-9.4 33.9 0s9.4 24.6 0 33.9z"
+                                transform="scale(0.04)" style="cursor: grab;">
+                            </path>
+                            <!-- ที่จอดไม่ว่าง -->
+                            <path id="spot-path-red-{{ spot.id }}" fill="#ff0000" style="display: none;"
+                                d="M256 48a208 208 0 1 1 0 416 208 208 0 1 1 0-416zm0 464A256 256 0 1 0 256 0a256 256 0 1 0 0 512zM175 175c-9.4 9.4-9.4 24.6 0 33.9l47 47-47 47c-9.4 9.4-9.4 24.6 0 33.9s24.6 9.4 33.9 0l47-47 47 47c-9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-47-47 47-47c-9.4-9.4 9.4-24.6 0-33.9s-24.6-9.4-33.9 0l-47 47-47-47c-9.4-9.4-24.6-9.4-33.9 0z"
+                                transform="scale(0.04)" style="cursor: grab;">
+                            </path>
+                        </g>
+                        {% endfor %}
+                    </svg>
 
-                        <td class="border px-4 py-2">
-                            {% if spot.license_plate %}
-                            {{ spot.license_plate }}
-                            {% else %}
-                            N/A
-                            {% endif %}
-                        </td>
-                        <td class="border px-4 py-2">
-                            <button class="text-blue-500 hover:underline suspend-btn" data-spot-id="{{ spot.id }}"
-                                data-action="{% if spot.is_available %}suspend{% else %}restore{% endif %}">
-                                {% if spot.is_available %}
-                                Suspend
-                                {% else %}
-                                Restore
-                                {% endif %}
+                </div>
+            </div>
+        </table>
+
+        <!-- ✅ Live Camera Feed -->
+        <div class=" container mx-auto mt-8 bg-white p-6 rounded-lg shadow-lg max-w-3xl">
+            <h2 class="text-2xl font-bold text-gray-800 mb-4">📷 Live Camera Feed</h2>
+            <div class="overflow-hidden rounded-lg border border-gray-300 bg-gray-100 flex justify-center">
+                <img id="live-stream" class="w-full max-w-2xl h-90 object-cover rounded-lg" src="" alt="Live Stream">
+            </div>
+        </div>
+
+        <!-- ✅ JavaScript -->
+        <script>
+            function fetchParkingStatus() {
+                console.log("🚗 กำลังดึงสถานะที่จอดรถ...");
+
+                fetch("{% url 'get_parking_status' %}?location_id={{ location.id }}")
+                    .then(response => response.json())
+                    .then(data => {
+                        console.log("✅ ข้อมูลที่จอดรถที่ได้รับ:", data);
+
+                        data.forEach(function (spot) {
+                            let pathGreen = document.getElementById(`spot-path-green-${spot.id}`);
+                            let pathRed = document.getElementById(`spot-path-red-${spot.id}`);
+
+                            if (!pathGreen || !pathRed) {
+                                console.warn(`❌ ไม่พบ SVG สำหรับที่จอด spot-${spot.id}`);
+                                return;
+                            }
+
+                            // ✅ ตรวจสอบสถานะที่จอด แล้วอัปเดตสี
+                            if (spot.is_available) {
+                                pathGreen.style.display = "block";  // แสดงสีเขียว
+                                pathRed.style.display = "none";     // ซ่อนสีแดง
+                            } else {
+                                pathGreen.style.display = "none";   // ซ่อนสีเขียว
+                                pathRed.style.display = "block";    // แสดงสีแดง
+                            }
+                        });
+                    })
+                    .catch(error => console.error("❌ เกิดข้อผิดพลาดในการดึงข้อมูล:", error));
+            }
+
+            // ✅ อัปเดตสถานะที่จอดรถทุกๆ 5 วินาที
+            setInterval(fetchParkingStatus, 5000);
+
+
+
+
+
+
+
+
+            document.addEventListener("DOMContentLoaded", function () {
+                const svg = document.getElementById("parking-map");
+
+                let selectedElement = null;
+                let offset = { x: 0, y: 0 };
+
+                function startDrag(event) {
+                    if (event.target.closest(".draggable")) {
+                        selectedElement = event.target.closest(".draggable");
+                        let transform = selectedElement.getAttribute("transform");
+                        let matches = /translate\(([^,]+),\s*([^)]+)\)/.exec(transform);
+                        let x = parseFloat(matches[1]);
+                        let y = parseFloat(matches[2]);
+
+                        offset.x = event.clientX - x;
+                        offset.y = event.clientY - y;
+
+                        svg.addEventListener("mousemove", drag);
+                        svg.addEventListener("mouseup", endDrag);
+                    }
+                }
+
+                function drag(event) {
+                    if (selectedElement) {
+                        let x = event.clientX - offset.x;
+                        let y = event.clientY - offset.y;
+                        selectedElement.setAttribute("transform", `translate(${x},${y})`);
+                    }
+                }
+
+                function endDrag() {
+                    if (selectedElement) {
+                        let spotId = selectedElement.getAttribute("data-spot-id");
+                        let transform = selectedElement.getAttribute("transform");
+                        let matches = /translate\(([^,]+),\s*([^)]+)\)/.exec(transform);
+                        let newX = parseFloat(matches[1]);
+                        let newY = parseFloat(matches[2]);
+
+                        // ✅ บันทึกค่าตำแหน่งใหม่ลงฐานข้อมูลผ่าน AJAX
+                        fetch(`/update_parking_spot_position/`, {
+                            method: "POST",
+                            headers: {
+                                "Content-Type": "application/json",
+                                "X-CSRFToken": document.querySelector("[name=csrfmiddlewaretoken]").value
+                            },
+                            body: JSON.stringify({
+                                spot_id: spotId,
+                                x_position: newX,
+                                y_position: newY
+                            })
+                        })
+                            .then(response => response.json())
+                            .then(data => {
+                                if (data.success) {
+                                    console.log("✅ ตำแหน่งช่องจอดอัปเดตสำเร็จ!");
+                                } else {
+                                    console.error("❌ ไม่สามารถบันทึกตำแหน่งใหม่ได้:", data.error);
+                                }
+                            });
+
+                        selectedElement = null;
+                        svg.removeEventListener("mousemove", drag);
+                        svg.removeEventListener("mouseup", endDrag);
+                    }
+                }
+
+                svg.addEventListener("mousedown", startDrag);
+            });
+
+
+
+
+
+
+            document.addEventListener("DOMContentLoaded", function () {
+                const tbody = document.getElementById('parking-spot-body');
+
+                tbody.addEventListener("click", function (e) {
+                    // ✅ ระงับ/คืนสถานะ ช่องจอด
+                    if (e.target.classList.contains("suspend-btn")) {
+                        e.preventDefault();
+                        const button = e.target;
+                        const spotId = button.getAttribute("data-spot-id");
+                        const action = button.getAttribute("data-action");
+                        suspendRestoreSpot(spotId, action, button);
+                    }
+
+                    // ✅ ลบช่องจอด
+                    if (e.target.classList.contains("delete-btn")) {
+                        e.preventDefault();
+                        const button = e.target;
+                        const spotId = button.getAttribute("data-spot-id");
+
+                        showConfirmationModal("❗ คุณแน่ใจหรือไม่ว่าต้องการลบช่องจอดนี้?", () => {
+                            deleteParkingSpot(spotId, button);
+                        });
+                    }
+                });
+
+                function suspendRestoreSpot(spotId, action, button) {
+                    fetch(`/suspend_parking_spot/${spotId}/`, {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                            "X-CSRFToken": document.querySelector("[name=csrfmiddlewaretoken]").value
+                        },
+                        body: JSON.stringify({ action, spot_id: spotId })
+                    })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                const row = button.closest("tr");
+                                const statusCell = row.querySelector(".status-text span");
+
+                                if (data.is_available) {
+                                    statusCell.classList.remove("bg-red-500");
+                                    statusCell.classList.add("bg-green-500");
+                                    statusCell.textContent = "✅ ว่าง";
+                                    button.textContent = "🚫 ระงับ";
+                                    button.setAttribute("data-action", "suspend");
+                                } else {
+                                    statusCell.classList.remove("bg-green-500");
+                                    statusCell.classList.add("bg-red-500");
+                                    statusCell.textContent = "❌ ไม่ว่าง";
+                                    button.textContent = "✅ คืนสถานะ";
+                                    button.setAttribute("data-action", "restore");
+                                }
+                            } else {
+                                console.error("Failed to update parking spot status:", data.error);
+                            }
+                        })
+                        .catch(error => console.error("❌ Error:", error));
+                }
+
+                function deleteParkingSpot(spotId, button) {
+                    fetch(`/delete_parking_spot/${spotId}/`, {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                            "X-CSRFToken": document.querySelector("[name=csrfmiddlewaretoken]").value
+                        },
+                        body: JSON.stringify({ spot_id: spotId })
+                    })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                button.closest("tr").remove(); // ✅ ลบแถวออกจากตาราง
+                                showToast("✅ ลบช่องจอดเรียบร้อยแล้ว!", "success");
+                            } else {
+                                showToast("❌ ไม่สามารถลบช่องจอดได้: " + data.error, "error");
+                            }
+                        })
+                        .catch(error => console.error("❌ Error:", error));
+                    setInterval(fetchParkingStatus, 3000);
+                }
+
+                function showToast(message, type = "info") {
+                    const toastContainer = document.getElementById("toast-container");
+                    const toast = document.createElement("div");
+
+                    toast.className = `p-4 text-white rounded-lg shadow-lg transition-opacity duration-500 opacity-0 ${type === "success" ? "bg-green-500" : "bg-red-500"}`;
+                    toast.textContent = message;
+
+                    toastContainer.appendChild(toast);
+                    setTimeout(() => { toast.classList.remove("opacity-0"); }, 100);  // ✅ แสดง Toast
+                    setTimeout(() => { toast.classList.add("opacity-0"); }, 3000);   // ✅ ซ่อน Toast หลัง 3 วินาที
+                    setTimeout(() => { toast.remove(); }, 3500);                     // ✅ ลบ Toast ออกจาก DOM
+                }
+
+                function showConfirmationModal(message, onConfirm) {
+                    const modalHtml = `
+                <div id="confirm-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                    <div class="bg-white p-6 rounded-lg shadow-lg max-w-sm text-center">
+                        <p class="text-lg font-semibold text-gray-800">${message}</p>
+                        <div class="mt-4 flex justify-around">
+                            <button id="confirm-btn" class="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition">
+                                ✅ ตกลง
                             </button>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+                            <button id="cancel-btn" class="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition">
+                                ❌ ยกเลิก
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+                    document.body.insertAdjacentHTML("beforeend", modalHtml);
 
+                    document.getElementById("confirm-btn").addEventListener("click", function () {
+                        onConfirm();
+                        document.getElementById("confirm-modal").remove();
+                    });
 
-
-        </div>
-    </div>
-
-
-
-    <!-- camera feed -->
-    <!-- Live Camera Feed -->
-    <div class="mt-8 max-w-2xl mx-auto bg-white p-6 rounded-lg shadow-lg">
-        <h2 class="text-xl font-semibold mb-4 text-gray-700 text-center">Live Camera Feed</h2>
-
-        <!-- Dropdown สำหรับเลือกสถานที่ -->
-        
-
-        <!-- พื้นที่สำหรับแสดง Live Stream -->
-        <div class="overflow-hidden rounded-lg border border-gray-300 bg-gray-100">
-            <img id="live-stream" class="w-full h-80 object-cover" src="" alt="Live Stream">
-        </div>
-    </div>
-
-    <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            const liveStream = document.getElementById('live-stream');
-            const locationSelect = document.getElementById('location-select');
-            const cameraSection = document.getElementById('camera-section');
-            const startBtn = document.getElementById('start-btn');
-            const loginModal = document.getElementById('login-modal');
-            const modalBackground = document.getElementById('modal-background');
-            const isAuthenticated = "{{ user.is_authenticated|yesno:'true,false' }}";
-            
-            liveStream.src = '/stream/{{ location.id }}/';
-
-            locationSelect.addEventListener('change', function () {
-                liveStream.src = `/stream/${this.value}/`;
-            });
-
-            startBtn.addEventListener('click', function () {
-                if (isAuthenticated === "true") {
-                    cameraSection.style.display = "block";
-                    cameraSection.style.maxHeight = "1000px";
-                    cameraSection.style.opacity = "1";
-                    cameraSection.scrollIntoView({ behavior: 'smooth' });
-                } else {
-                    loginModal.style.display = "block";
-                    modalBackground.style.display = "block";
+                    document.getElementById("cancel-btn").addEventListener("click", function () {
+                        document.getElementById("confirm-modal").remove();
+                    });
                 }
             });
 
-            // ปิด modal เมื่อกดที่พื้นหลัง
-            modalBackground.addEventListener('click', function () {
-                loginModal.style.display = "none";
-                modalBackground.style.display = "none";
-            });
-        });
-        document.addEventListener('DOMContentLoaded', function () {
-            const tbody = document.getElementById('parking-spot-body');
 
-            // ใช้ Event Delegation กับ tbody
-            tbody.addEventListener('click', function (e) {
-                if (e.target.classList.contains('suspend-btn')) {
-                    e.preventDefault();  // ป้องกันการ reload หน้าเมื่อคลิก
 
-                    const button = e.target;
-                    const spotId = button.getAttribute('data-spot-id');
-                    const action = button.getAttribute('data-action');
+            document.addEventListener("DOMContentLoaded", function () {
+                const addSpotBtn = document.getElementById("add-spot-btn");
+                const addSpotModal = document.getElementById("add-spot-modal");
+                const closeModalBtn = document.getElementById("close-modal");
+                const addSpotForm = document.getElementById("add-spot-form");
+                const parkingSpotBody = document.getElementById("parking-spot-body");
+                const errorMessage = document.getElementById("error-message");
 
-                    suspendRestoreSpot(spotId, action, button);
-                }
-            });
+                // แสดง Modal
+                addSpotBtn.addEventListener("click", function () {
+                    addSpotModal.classList.remove("hidden");
+                    errorMessage.textContent = "";
+                });
 
-            function suspendRestoreSpot(spotId, action, button) {
-                // ส่งข้อมูลการเปลี่ยนแปลงสถานะไปยัง server
-                fetch(`/suspend_parking_spot/${spotId}/`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
-                    },
-                    body: JSON.stringify({ action, spot_id: spotId })
-                })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            // อัปเดต UI ตามสถานะที่เปลี่ยน
-                            const row = button.closest('tr');
-                            const statusCell = row.querySelector('td:nth-child(2)');
-                            const actionCell = row.querySelector('td:nth-child(5)');
+                // ซ่อน Modal
+                closeModalBtn.addEventListener("click", function () {
+                    addSpotModal.classList.add("hidden");
+                    addSpotForm.reset();
+                });
 
-                            if (data.is_available) {
-                                statusCell.textContent = 'Available';
-                                button.textContent = 'Suspend';
-                                button.setAttribute('data-action', 'suspend');
+                // ฟังก์ชันเพิ่มช่องจอดแบบ AJAX
+                addSpotForm.addEventListener("submit", function (event) {
+                    event.preventDefault();
+
+                    let formData = new FormData(addSpotForm);
+
+                    fetch(addSpotForm.action, {
+                        method: "POST",
+                        body: formData
+                    })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                let newRow = `
+                <tr class="border-b border-gray-300 text-center">
+                    <td class="p-3 font-semibold text-blue-600">#${data.spot_number}</td>
+                    <td class="p-3 status-text">
+                        <span class="px-3 py-1 rounded-md text-white bg-green-500">✅ ว่าง</span>
+                    </td>
+                    <td class="p-3">-</td>
+                    <td class="p-3">
+                        <button class="suspend-btn bg-blue-500 text-white px-3 py-1 rounded-lg hover:bg-blue-600 transition"
+                            data-spot-id="${data.spot_id}" data-action="suspend">
+                            🚫 ระงับ
+                        </button>
+                        <button
+                            class="delete-btn bg-red-500 text-white px-3 py-1 rounded-lg hover:bg-red-600 transition ml-2"
+                            data-spot-id="${data.spot_id}"data-action="delete-btn">
+                            🗑️ ลบ
+                        </button>
+                    </td>
+                </tr>`;
+
+                                parkingSpotBody.insertAdjacentHTML("beforeend", newRow);
+                                addSpotModal.classList.add("hidden");
+                                addSpotForm.reset();
                             } else {
-                                statusCell.textContent = 'Unavailable';
-                                button.textContent = 'Restore';
-                                button.setAttribute('data-action', 'restore');
+                                errorMessage.textContent = "❌ " + data.error;
                             }
-                        } else {
-                            console.error('Failed to update parking spot status:', data.message);
-                        }
-                    })
-                    .catch(error => console.error('Error:', error));
-            }
-        });
+                        })
+                        .catch(error => console.error("❌ Error:", error));
+                });
 
+                // ✅ Live Camera Feed อัปเดตอัตโนมัติ
+                const liveStream = document.getElementById('live-stream');
+                liveStream.src = `/stream/{{ location.id }}/`;
 
-    </script>
-
-
-
-
-
-
-
-
-
-    <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            const locationDropdown = document.getElementById('location');
-            const tbody = document.getElementById('parking-spot-body');
-
-            // เมื่อเลือกสถานที่จาก dropdown
-            locationDropdown.addEventListener('change', function () {
-                const locationId = this.value;
-
-                if (locationId) {
-                    fetchParkingSpots(locationId);
-                } else {
-                    tbody.innerHTML = '';
-                }
+                document.addEventListener("change", function (event) {
+                    if (event.target.id === "location-select") {
+                        liveStream.src = `/stream/${event.target.value}/`;
+                    }
+                });
             });
+            setInterval(fetchParkingStatus, 3000);
+        </script>
 
-            function fetchParkingSpots(locationId) {
-                fetch(`/get_parking_spots/${locationId}/`)
-                    .then(response => response.json())
-                    .then(data => {
-                        tbody.innerHTML = '';
-                        if (data.parking_spots && data.parking_spots.length > 0) {
-                            data.parking_spots.forEach(spot => appendParkingSpotRow(spot));
-                        } else {
-                            tbody.innerHTML = `<tr><td colspan="5" class="text-center">No parking spots available.</td></tr>`;
-                        }
-                    })
-                    .catch(error => console.error('Error fetching parking spots:', error));
-            }
-
-            function appendParkingSpotRow(spot) {
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-            <td class="border px-4 py-2">${spot.spot_number}</td>
-            <td class="border px-4 py-2">${spot.is_available ? 'Available' : 'Unavailable'}</td>
-            <td class="border px-4 py-2">${spot.reserved_by || 'None'}</td>
-            <td class="border px-4 py-2">${spot.license_plate || 'N/A'}</td>
-            <td class="border px-4 py-2">
-                <button class="text-blue-500 hover:underline suspend-btn" 
-                        data-spot-id="${spot.id}" 
-                        data-action="${spot.is_available ? 'suspend' : 'restore'}">
-                    ${spot.is_available ? 'Suspend' : 'Restore'}
-                </button>
-            </td>
-        `;
-                tbody.appendChild(tr);
-            }
-
-            // ใช้ Event Delegation กับ tbody
-            tbody.addEventListener('click', function (e) {
-                if (e.target.classList.contains('suspend-btn')) {
-                    e.preventDefault();
-
-                    const button = e.target;
-                    const spotId = button.getAttribute('data-spot-id');
-                    const action = button.getAttribute('data-action');
-
-                    suspendRestoreSpot(spotId, action, button);
-                }
-            });
-
-            function suspendRestoreSpot(spotId, action, button) {
-                fetch(`/suspend_parking_spot/${spotId}/`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
-                    },
-                    body: JSON.stringify({ action, spot_id: spotId })
-                })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            // อัปเดต UI ตามสถานะที่เปลี่ยน
-                            const row = button.closest('tr');
-                            const statusCell = row.querySelector('td:nth-child(2)');
-                            const actionCell = row.querySelector('td:nth-child(5)');
-
-                            if (data.is_available) {
-                                statusCell.textContent = 'Available';
-                                button.textContent = 'Suspend';
-                                button.setAttribute('data-action', 'suspend');
-                            } else {
-                                statusCell.textContent = 'Unavailable';
-                                button.textContent = 'Restore';
-                                button.setAttribute('data-action', 'restore');
-                            }
-                        } else {
-                            console.error('Failed to update parking spot status:', data.message);
-                        }
-                    })
-                    .catch(error => console.error('Error:', error));
-            }
-        });
-
-    </script>
 
 </body>
 

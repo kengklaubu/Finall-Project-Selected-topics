@@ -92,6 +92,7 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 INSTALLED_APPS = [
     "easypark",
+    'django_cron',
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",

@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>เพิ่มสถานที่จอดรถ - Easy Parking</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600&display=swap" rel="stylesheet">
+
+    <style>
+        body {
+            font-family: 'Kanit', sans-serif;
+        }
+    </style>
+</head>
+
+<body class="bg-gray-100 h-screen flex items-center justify-center">
+    {% load static %}
+
+    <div class="bg-white p-8 rounded-lg shadow-lg w-full max-w-lg">
+        <h2 class="text-3xl font-bold text-center mb-6 text-gray-800">➕ เพิ่มสถานที่จอดรถ</h2>
+
+        <form method="post" action="{% url 'manager_add_location' %}" enctype="multipart/form-data" class="space-y-4">
+            {% csrf_token %}
+            {{ form.as_p }}
+
+            <button type="submit"
+                class="w-full bg-blue-600 text-white p-3 rounded-md hover:bg-blue-700 transition font-semibold text-lg">
+                ✅ เพิ่มสถานที่
+            </button>
+        </form>
+
+        {% if location %}
+        <a href="{% url 'manager_dashboard' location.id %}" class="text-blue-500 hover:underline font-semibold">
+            🔙 กลับไปแดชบอร์ด
+        </a>
+        {% else %}
+        <a href="{% url 'homepage' %}" class="text-blue-500 hover:underline font-semibold">
+            🔙 กลับไปหน้าหลัก
+        </a>
+        {% endif %}
+
+
+    </div>
+</body>
+
+</html>

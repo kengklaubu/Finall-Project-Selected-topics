@@ -27,3 +27,28 @@ class RegisterForm(forms.ModelForm):
             raise ValidationError("รหัสผ่านไม่ตรงกัน")
 
         return cleaned_data
+
+from django import forms
+from .models import ParkingLocation
+from django.utils.text import slugify
+
+class ParkingLocationForm(forms.ModelForm):
+    class Meta:
+        model = ParkingLocation
+        fields = ['name', 'slug', 'description', 'total_spots', 'available_spots', 'camera_url', 'image']
+        widgets = {
+            'name': forms.TextInput(attrs={'class': 'w-full p-2.5 border border-gray-300 rounded-md', 'placeholder': 'ชื่อสถานที่'}),
+            'slug': forms.TextInput(attrs={'class': 'w-full p-2.5 border border-gray-300 rounded-md', 'placeholder': 'Slug (URL)'}),
+            'description': forms.Textarea(attrs={'class': 'w-full p-2.5 border border-gray-300 rounded-md', 'placeholder': 'รายละเอียดสถานที่', 'rows': 3}),
+            'total_spots': forms.NumberInput(attrs={'class': 'w-full p-2.5 border border-gray-300 rounded-md', 'placeholder': 'จำนวนช่องจอดทั้งหมด'}),
+            'available_spots': forms.NumberInput(attrs={'class': 'w-full p-2.5 border border-gray-300 rounded-md', 'placeholder': 'จำนวนช่องจอดที่ว่าง'}),
+            'camera_url': forms.URLInput(attrs={'class': 'w-full p-2.5 border border-gray-300 rounded-md', 'placeholder': 'URL ของกล้องวงจรปิด'}),
+            'image': forms.ClearableFileInput(attrs={'class': 'w-full p-2.5 border border-gray-300 rounded-md'}),
+        }
+
+    def clean_slug(self):
+        slug = self.cleaned_data.get('slug')
+        if not slug:
+            slug = slugify(self.cleaned_data.get('name'))
+        return slug
+

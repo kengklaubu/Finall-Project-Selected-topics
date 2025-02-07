@@ -1,12 +1,13 @@
+from time import timezone
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
-from .models import CustomUser, ParkingSpot, Reservation, ParkingLocation
+from .models import CustomUser, ParkingSpot, Reservation, ParkingLocation,Booking
 
 @admin.register(ParkingSpot)
 class ParkingSpotAdmin(admin.ModelAdmin):
-    list_display = ('spot_number', 'is_available', 'license_plate', 'reserved_by','location')
-    list_editable = ('is_available', 'license_plate')
-    search_fields = ('spot_number', 'license_plate','location')
+    list_display = ('spot_number', 'is_available', 'reserved_by','location')
+    list_editable = ('is_available','location')
+    search_fields = ('spot_number','location')
     list_filter = ('is_available', 'location')
     actions = ['mark_as_available', 'mark_as_unavailable']
 
@@ -19,11 +20,35 @@ class ParkingSpotAdmin(admin.ModelAdmin):
     mark_as_unavailable.short_description = "เปลี่ยนสถานะเป็นไม่ว่าง"
 
 
+@admin.register(Booking)
+class BookingAdmin(admin.ModelAdmin):
+    list_display = ('user', 'parking_spot', 'location', 'reservation_date', 'reservation_start_time', 'reservation_end_time', 'status')
+    search_fields = ('user__username', 'parking_spot__spot_number', 'location__name')
+    list_filter = ('status', 'reservation_date', 'created_at')
+    actions = ['mark_completed', 'mark_cancelled']
+
+    def mark_completed(self, request, queryset):
+        """ ทำเครื่องหมายว่าการจองเสร็จสิ้นและย้ายไปที่ Reservation """
+        for booking in queryset.filter(status='active'):
+            booking.complete_booking()
+        self.message_user(request, "Marked selected bookings as completed.")
+
+    mark_completed.short_description = "Mark selected bookings as completed"
+
+    def mark_cancelled(self, request, queryset):
+        """ ทำเครื่องหมายว่าการจองถูกยกเลิก """
+        queryset.filter(status='active').update(status='cancelled', cancelled_at=timezone.now())
+        self.message_user(request, "Marked selected bookings as cancelled.")
+
+    mark_cancelled.short_description = "Mark selected bookings as cancelled"
+
+
 @admin.register(Reservation)
 class ReservationAdmin(admin.ModelAdmin):
-    list_display = ['user', 'parking_spot', 'reservation_date', 'status']
-    search_fields = ['user__username', 'parking_spot__spot_number']
-    list_filter = ['status']
+    list_display = ('user', 'parking_spot', 'location', 'reservation_date', 'completed_at')
+    search_fields = ('user__username', 'parking_spot__spot_number', 'location__name')
+    list_filter = ('reservation_date', 'completed_at')
+    
 
 
 @admin.register(ParkingLocation)
