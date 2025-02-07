@@ -1,72 +1,83 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="th">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Register</title>
+    <title>สมัครสมาชิก - Easy Parking</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600&display=swap" rel="stylesheet">
+
+    <style>
+        body {
+            font-family: 'Kanit', sans-serif;
+        }
+    </style>
 </head>
 
 <body class="bg-gray-100 h-screen flex items-center justify-center">
-    <div class="bg-white p-8 rounded-lg shadow-lg w-full max-w-md">
-        <h2 class="text-2xl font-bold text-center mb-6 text-gray-800">Create an Account</h2>
-        <form method="post" action="{% url 'register_page' %}" class="space-y-6">
+    {% load static %}
+
+    <!-- Register Card -->
+    <div class="bg-white p-8 rounded-lg shadow-xl w-full max-w-sm border border-gray-200 px-6">
+        <h2 class="text-3xl font-bold text-center mb-6 text-gray-800">🚀 สมัครสมาชิก</h2>
+
+        <form method="post" action="{% url 'register_page' %}" class="space-y-4">
             {% csrf_token %}
-            
+
             <!-- Username Field -->
             <div>
-                <label for="username" class="block text-sm font-medium text-gray-700">Username:</label>
-                <input type="text" id="username" name="username" value="{{ form.username.value }}" placeholder="Enter your username"
-                    class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                <label for="username" class="block text-sm font-medium text-gray-700">👤 ชื่อผู้ใช้</label>
+                <input type="text" id="username" name="username" value="{{ form.username.value }}" placeholder="กรอกชื่อผู้ใช้"
+                    class="mt-1 block w-full p-2.5 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-gray-700">
             </div>
-            
+
             <!-- Password Field -->
             <div>
-                <label for="password" class="block text-sm font-medium text-gray-700">Password:</label>
-                <input type="password" id="password" name="password" value="{{ form.password.value }}" placeholder="Enter your password"
-                    class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                <label for="password" class="block text-sm font-medium text-gray-700">🔑 รหัสผ่าน</label>
+                <input type="password" id="password" name="password" value="{{ form.password.value }}" placeholder="กรอกรหัสผ่าน"
+                    class="mt-1 block w-full p-2.5 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-gray-700">
                 <small class="text-gray-600">{{ form.password.help_text }}</small>
             </div>
 
             <!-- Confirm Password Field -->
             <div>
-                <label for="password2" class="block text-sm font-medium text-gray-700">Confirm Password:</label>
-                <input type="password" id="password2" name="password2" value="{{ form.password2.value }}" placeholder="Confirm your password"
-                    class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                <label for="password2" class="block text-sm font-medium text-gray-700">🔐 ยืนยันรหัสผ่าน</label>
+                <input type="password" id="password2" name="password2" value="{{ form.password2.value }}" placeholder="ยืนยันรหัสผ่าน"
+                    class="mt-1 block w-full p-2.5 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-gray-700">
             </div>
-            
+
             <!-- First Name Field -->
             <div>
-                <label for="first_name" class="block text-sm font-medium text-gray-700">First Name:</label>
-                <input type="text" id="first_name" name="first_name" value="{{ form.first_name.value }}" placeholder="Enter your first name"
-                    class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                <label for="first_name" class="block text-sm font-medium text-gray-700">📛 ชื่อจริง</label>
+                <input type="text" id="first_name" name="first_name" value="{{ form.first_name.value }}" placeholder="กรอกชื่อจริง"
+                    class="mt-1 block w-full p-2.5 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-gray-700">
             </div>
-            
+
             <!-- Last Name Field -->
             <div>
-                <label for="last_name" class="block text-sm font-medium text-gray-700">Last Name:</label>
-                <input type="text" id="last_name" name="last_name" value="{{ form.last_name.value }}" placeholder="Enter your last name"
-                    class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                <label for="last_name" class="block text-sm font-medium text-gray-700">📝 นามสกุล</label>
+                <input type="text" id="last_name" name="last_name" value="{{ form.last_name.value }}" placeholder="กรอกนามสกุล"
+                    class="mt-1 block w-full p-2.5 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-gray-700">
             </div>
 
             <!-- Email Field -->
             <div>
-                <label for="email" class="block text-sm font-medium text-gray-700">Email:</label>
-                <input type="email" id="email" name="email" value="{{ form.email.value }}" placeholder="Enter your email"
-                    class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                <label for="email" class="block text-sm font-medium text-gray-700">📧 อีเมล</label>
+                <input type="email" id="email" name="email" value="{{ form.email.value }}" placeholder="กรอกอีเมล"
+                    class="mt-1 block w-full p-2.5 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-gray-700">
             </div>
-            
+
             <!-- Register Button -->
             <button type="submit"
-                class="w-full bg-blue-600 text-white p-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
-                Register
+                class="w-full bg-blue-600 text-white p-3 rounded-md hover:bg-blue-700 transition font-semibold text-lg">
+                ✅ สมัครสมาชิก
             </button>
         </form>
 
         <!-- Login Link -->
         <p class="text-center text-sm text-gray-600 mt-4">
-            Already have an account? <a href="{% url 'login_page' %}" class="text-blue-500 hover:underline">Login here</a>
+            มีบัญชีอยู่แล้ว? <a href="{% url 'login_page' %}" class="text-blue-500 hover:underline font-semibold">เข้าสู่ระบบ</a>
         </p>
     </div>
 </body>
