@@ -52,3 +52,21 @@ class ParkingLocationForm(forms.ModelForm):
             slug = slugify(self.cleaned_data.get('name'))
         return slug
 
+
+from django import forms
+from .models import ParkingLocation
+from django.contrib.auth import get_user_model
+
+User = get_user_model()
+
+class AdminLocationForm(forms.ModelForm):
+    owner = forms.ModelChoiceField(
+        queryset=User.objects.all(),
+        label="เจ้าของสถานที่",
+        required=True
+    )
+
+    class Meta:
+        model = ParkingLocation
+        fields = ['name', 'description', 'total_spots', 'available_spots', 'camera_url', 'owner', 'image']
+

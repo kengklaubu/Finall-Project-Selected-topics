@@ -44,7 +44,7 @@
                 📊 <span class="ml-2">Dashboard</span>
             </a>
             <a href="{% url 'user_management' %}" class="block py-3 px-6 hover:bg-gray-700 flex items-center">
-                👥 <span class="ml-2">User Management</span>
+                👥 <span class="ml-2">Users</span>
             </a>
             <a href="#" class="block py-3 px-6 hover:bg-gray-700 flex items-center">
                 ⚙️ <span class="ml-2">Settings</span>
@@ -167,6 +167,28 @@
         </section>
     </main>
 
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const searchInput = document.getElementById('search-user');
+            const userTable = document.getElementById('user-table');
+
+            searchInput.addEventListener('input', function () {
+                const searchValue = searchInput.value.toLowerCase();
+                const rows = userTable.querySelectorAll('tr');
+
+                rows.forEach(row => {
+                    const username = row.cells[1]?.textContent.toLowerCase();
+                    const email = row.cells[2]?.textContent.toLowerCase();
+
+                    if (username.includes(searchValue) || email.includes(searchValue)) {
+                        row.style.display = '';
+                    } else {
+                        row.style.display = 'none';
+                    }
+                });
+            });
+        });
+    </script>
     <script>
         document.addEventListener("DOMContentLoaded", function () {
             document.querySelectorAll(".edit-btn").forEach(button => {
