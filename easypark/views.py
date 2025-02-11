@@ -868,49 +868,13 @@ def add_user(request):
 
 
 
+
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.shortcuts import get_object_or_404
 from .models import ParkingLocation
 from django.contrib.auth import get_user_model
-
 User = get_user_model()
-
-@csrf_exempt
-def add_location(request):
-    if request.method == "POST":
-        try:
-            print("📥 รับข้อมูลจาก Frontend:", request.POST)
-
-            name = request.POST.get("name")
-            description = request.POST.get("description")
-            total_spots = request.POST.get("total_spots")
-            available_spots = request.POST.get("available_spots")
-            camera_url = request.POST.get("camera_url")
-            owner_id = request.POST.get("owner")
-
-            if not owner_id:
-                return JsonResponse({"success": False, "error": "Missing owner ID"})
-
-            owner = get_object_or_404(User, id=owner_id)
-            image = request.FILES.get("image") if "image" in request.FILES else None
-
-            location = ParkingLocation(
-                name=name,
-                description=description,
-                total_spots=total_spots,
-                available_spots=available_spots,
-                camera_url=camera_url,
-                owner=owner,
-                image=image
-            )
-            location.save()
-
-            return JsonResponse({"success": True, "message": "สถานที่ถูกเพิ่มแล้ว"})
-        except Exception as e:
-            print("❌ Error:", str(e))
-            return JsonResponse({"success": False, "error": str(e)})
-
 
 @csrf_exempt
 def edit_location(request, location_id):
@@ -977,6 +941,130 @@ def get_location(request, location_id):
     return JsonResponse({"success": True, "location": data})
 
 
+from django.http import JsonResponse
+from django.shortcuts import render, get_object_or_404, redirect
+from django.contrib.auth.decorators import login_required
+from .models import ParkingLocation
+from .forms import AdminLocationForm
+from django.contrib import messages
+from django.utils.text import slugify
+@login_required
+@csrf_exempt
+def admin_add_location(request):
+    """ให้ Admin เพิ่มสถานที่ โดยเลือกเจ้าของสถานที่เอง"""
+    if request.method == "POST":
+        try:
+            print("📥 ข้อมูลที่รับมา:", request.POST)
+            print("📷 ไฟล์ที่แนบมา:", request.FILES)
+
+            name = request.POST.get("name")
+            if not name:
+                return JsonResponse({"success": False, "error": "Missing name"})
+
+            description = request.POST.get("description", "")
+            total_spots = request.POST.get("total_spots", "0")
+            available_spots = request.POST.get("available_spots", "0")
+            camera_url = request.POST.get("camera_url", "")
+            owner_id = request.POST.get("owner")
+
+            if not owner_id:
+                return JsonResponse({"success": False, "error": "Missing owner ID"})
+
+            owner = get_object_or_404(User, id=owner_id)
+            image = request.FILES.get("image")
+
+            # ✅ ป้องกันค่า slug ซ้ำ
+            base_slug = slugify(name)
+            unique_slug = base_slug
+            counter = 1
+            while ParkingLocation.objects.filter(slug=unique_slug).exists():
+                unique_slug = f"{base_slug}-{counter}"
+                counter += 1
+
+            # ✅ บันทึกข้อมูลใหม่
+            location = ParkingLocation(
+                name=name,
+                slug=unique_slug,  # ✅ ใช้ slug ที่ไม่ซ้ำ
+                description=description,
+                total_spots=int(total_spots),
+                available_spots=int(available_spots),
+                camera_url=camera_url,
+                owner=owner,
+                image=image
+            )
+            location.save()
+
+            # ✅ ส่งข้อมูลกลับไปให้ UI
+            return JsonResponse({
+                "success": True,
+                "message": "สถานที่ถูกเพิ่มแล้ว",
+                "location": {
+                    "id": location.id,
+                    "name": location.name
+                }
+            })
+        except Exception as e:
+            print("❌ Error:", str(e))
+            return JsonResponse({"success": False, "error": str(e)})
+
+
+
+
+from django.http import JsonResponse
+from django.shortcuts import get_object_or_404
+from django.contrib.auth.decorators import login_required
+from .models import ParkingLocation
+from .forms import AdminLocationForm
+
+@login_required
+@csrf_exempt
+def admin_edit_location(request, location_id):
+    """ให้ Admin แก้ไขสถานที่"""
+    location = get_object_or_404(ParkingLocation, id=location_id)
+
+    if request.method == "POST":
+        print("📥 ข้อมูลที่รับมา:", request.POST)  # ✅ Debug ดูค่าที่ถูกส่ง
+        print("📷 ไฟล์ที่แนบมา:", request.FILES)
+
+        form = AdminLocationForm(request.POST, request.FILES, instance=location)
+        if form.is_valid():
+            form.save()
+            print("✅ แก้ไขสำเร็จ:", form.cleaned_data)  # ✅ Debug ค่าหลังแก้ไข
+            return JsonResponse(
+                {"success": True, "message": "สถานที่ถูกแก้ไขแล้ว"},
+                json_dumps_params={'ensure_ascii': False}
+            )
+        else:
+            print("❌ ฟอร์มไม่ผ่าน:", form.errors)  # ✅ Debug ข้อผิดพลาด
+            return JsonResponse(
+                {"success": False, "error": form.errors},
+                json_dumps_params={'ensure_ascii': False}
+            )
+
+
+    else:
+        form = AdminLocationForm(instance=location)
+
+    return render(request, 'admin_edit_location.html', {'form': form, 'location': location})
+
+
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.shortcuts import get_object_or_404
+from .models import ParkingLocation
+
+@csrf_exempt
+def delete_location(request, location_id):
+    """ฟังก์ชันลบสถานที่จอดรถ"""
+    if request.method == "DELETE":
+        try:
+            location = get_object_or_404(ParkingLocation, id=location_id)
+            location.delete()
+            return JsonResponse({"success": True, "message": "สถานที่ถูกลบแล้ว"})
+        except Exception as e:
+            return JsonResponse({"success": False, "error": str(e)})
+    else:
+        return JsonResponse({"success": False, "error": "Invalid request method"})
 
 
 

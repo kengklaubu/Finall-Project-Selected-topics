@@ -23,7 +23,7 @@ urlpatterns = [
     path('logout/', views.logout_view, name='logout'),
     path('password_reset/', views.password_reset, name='password_reset1221'),
     #path('locations/', views.locations_page, name='locations'),
-    path('locations/<slug:location_slug>/', views.parking_location, name='parking-location'),
+    
     path('reservation_history/', views.reservation_history, name='reservation_history'),
     path('login/', views.login_page, name='login_page'),  
     path('admin_dashboard/', views.admin_dashboard, name='admin_dashboard'),  
@@ -45,10 +45,21 @@ urlpatterns = [
     path("delete_user/<int:user_id>/", views.delete_user, name="delete_user"),
     path("add_user/", views.add_user, name="add_user"),
     path("locations_management/", views.locations_management, name="locations_management"),
-    path('locations/add/', views.add_location, name='add_location'),
-    path('locations/edit/<int:location_id>/', views.edit_location, name='edit_location'),
-    path('locations/delete/<int:location_id>/', views.delete_location, name='delete_location'),
-    path('locations/get/<int:location_id>/', views.get_location, name='get_location'), 
+  
+
+ 
+    path('dashboard/locations/edit/<int:location_id>/', views.admin_edit_location, name='admin_edit_location'),
+
+
+    path('locations/add/', views.admin_add_location, name='admin_add_location'),
+    path('locations/delete/<int:location_id>/', views.delete_location, name='delete_location'),  # ✅ ต้องมีเส้นทางนี้
+    path('locations/get/<int:location_id>/', views.get_location, name='get_location'),
+
+
+
+
+
+
 
 
     
@@ -62,5 +73,5 @@ urlpatterns = [
     path('reset/<uidb64>/<token>/', auth_views.PasswordResetConfirmView.as_view(), name='password_reset_confirm'),
     path('reset/done/', auth_views.PasswordResetCompleteView.as_view(), name='password_reset_complete'),
 
-    
+    path('locations/<slug:location_slug>/', views.parking_location, name='parking-location'),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
