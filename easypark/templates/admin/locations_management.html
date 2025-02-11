@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard | Location Management</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600&display=swap" rel="stylesheet">
+</head>
+<style>
+    #locationModal {
+        display: none;
+        /* ✅ ซ่อน Modal ตอนเริ่มต้น */
+        position: fixed;
+        inset: 0;
+        background-color: rgba(0, 0, 0, 0.5);
+        overflow-y: auto;
+        /* ✅ ให้ Modal Scroll ได้ */
+        justify-content: center;
+        align-items: center;
+    }
+
+    .modal-content {
+        background-color: white;
+        padding: 20px;
+        border-radius: 10px;
+        width: 90%;
+        max-width: 500px;
+        max-height: 90vh;
+        /* ✅ จำกัดความสูง */
+        overflow-y: auto;
+        /* ✅ Scroll ภายใน Modal */
+    }
+
+    body {
+        font-family: 'Kanit', sans-serif;
+    }
+
+    .sidebar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        height: 100vh;
+        width: 250px;
+        background-color: #1F2937;
+        color: white;
+        box-shadow: 2px 0 5px rgba(0, 0, 0, 0.2);
+    }
+
+    .main-content {
+        margin-left: 250px;
+        width: calc(100% - 250px);
+    }
+</style>
+
+<body class="bg-gray-100">
+    {% load static %}
+
+    <aside class="sidebar flex flex-col">
+        <div class="p-6 text-2xl font-bold flex items-center">
+            <img src="{% static 'easypark/image/logo.png' %}" alt="Logo" class="h-8 mr-2">
+            Admin Panel
+        </div>
+        <nav class="flex-1">
+            <a href="{% url 'admin_dashboard' %}" class="block py-3 px-6 hover:bg-gray-700 flex items-center">
+                📊 <span class="ml-2">Dashboard</span>
+            </a>
+            <a href="{% url 'user_management' %}" class="block py-3 px-6 hover:bg-gray-700 flex items-center">
+                👥 <span class="ml-2">User Management</span>
+            </a>
+            <a href="#" class="block py-3 px-6 hover:bg-gray-700 flex items-center">
+                ⚙️ <span class="ml-2">Settings</span>
+            </a>
+            <a href="{% url 'locations_management' %}" class="block py-3 px-6 hover:bg-gray-700 flex items-center">
+                📍 <span class="ml-2">Locations</span>
+            </a>
+        </nav>
+        <form action="{% url 'logout' %}" method="post" class="p-6">
+            {% csrf_token %}
+            <button type="submit" class="w-full bg-red-500 hover:bg-red-600 py-2 rounded-lg transition">🚪
+                Logout</button>
+        </form>
+    </aside>
+
+
+
+    <main class="main-content flex flex-col p-6">
+        <header class="bg-white p-4 shadow flex justify-between items-center">
+            <h1 class="text-xl font-bold">📍 Manage Locations</h1>
+            <button onclick="openAddLocationModal()"
+                class="bg-green-500 hover:bg-green-600 text-white py-2 px-4 rounded-lg">
+                ➕ เพิ่มสถานที่
+            </button>
+        </header>
+
+        <section class="mt-6">
+            <div class="bg-white p-4 rounded-lg shadow-md">
+                <table class="w-full border-collapse table-auto">
+                    <thead class="bg-gray-700 text-white">
+                        <tr>
+                            <th class="border p-2">ID</th>
+                            <th class="border p-2">ชื่อสถานที่</th>
+                            <th class="border p-2">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="location-table">
+                        {% for lo in locations %}
+                        <tr class="bg-gray-100 hover:bg-gray-200 transition">
+                            <td class="border p-2 text-center">{{ lo.id }}</td>
+                            <td class="border p-2 text-center">{{ lo.name }}</td>
+                            <td class="border p-2 text-center">
+                                <button class="edit-btn bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded"
+                                    onclick="editLocation('{{ lo.id }}')">
+                                    ✏️ แก้ไข
+                                </button>
+
+                                <button onclick="deleteLocation('{{ lo.id }}')"
+                                    class="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded">
+                                    🗑️ ลบ
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+
+    <div id="locationModal" class="fixed inset-0 bg-gray-900 bg-opacity-50 flex justify-center items-center hidden">
+        <div class="modal-content w-96 p-6 rounded-lg shadow-lg">
+            <h2 class="text-xl font-bold mb-4" id="modalTitle">➕ เพิ่ม/แก้ไขสถานที่</h2>
+            <input type="hidden" id="locationId">
+
+            <label class="block text-gray-700">ชื่อสถานที่</label>
+            <input type="text" id="locationName" class="w-full p-2 border rounded-lg mb-3">
+
+            <label class="block text-gray-700">รายละเอียด</label>
+            <textarea id="description" class="w-full p-2 border rounded-lg mb-3"></textarea>
+
+            <label class="block text-gray-700">จำนวนที่จอดทั้งหมด</label>
+            <input type="number" id="totalSpots" class="w-full p-2 border rounded-lg mb-3">
+
+            <label class="block text-gray-700">จำนวนที่จอดว่าง</label>
+            <input type="number" id="availableSpots" class="w-full p-2 border rounded-lg mb-3">
+
+            <label class="block text-gray-700">Camera URL</label>
+            <input type="url" id="cameraUrl" class="w-full p-2 border rounded-lg mb-3">
+
+            <label class="block text-gray-700">เจ้าของสถานที่</label>
+            <select id="locationOwner" class="w-full p-2 border rounded-lg mb-3">
+                {% for user in users %}
+                <option value="{{ user.id }}">{{ user.username }}</option>
+                {% endfor %}
+            </select>
+
+            <label class="block text-gray-700">รูปภาพ</label>
+            <input type="file" id="image" class="w-full p-2 border rounded-lg mb-3">
+            <img id="previewImage" class="hidden w-full h-32 object-cover rounded-lg mt-3" alt="Preview Image">
+
+            <div class="flex justify-end space-x-2 mt-4">
+                <button onclick="closeLocationModal()"
+                    class="bg-gray-500 hover:bg-gray-600 text-white py-2 px-4 rounded">❌ ยกเลิก</button>
+
+                <button onclick="saveLocation()" class="bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded">💾
+                    บันทึก</button>
+            </div>
+        </div>
+    </div>
+
+
+
+    <script>
+        function openAddLocationModal() {
+            document.getElementById("modalTitle").textContent = "➕ เพิ่มสถานที่";
+            document.getElementById("locationId").value = "";
+            document.getElementById("locationName").value = "";
+            document.getElementById("description").value = "";
+            document.getElementById("totalSpots").value = "";
+            document.getElementById("availableSpots").value = "";
+            document.getElementById("cameraUrl").value = "";
+            document.getElementById("locationOwner").selectedIndex = 0;
+            document.getElementById("image").value = "";
+            document.getElementById("previewImage").classList.add("hidden");
+
+            const modal = document.getElementById("locationModal");
+            modal.style.display = "flex";  // ✅ แสดง Modal
+            document.body.style.overflow = "hidden"; // ✅ ป้องกัน Scroll หน้าเว็บ
+        }
+
+
+
+        function editLocation(locationId) {
+            fetch(`/locations/get/${locationId}/`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const location = data.location;
+
+                        document.getElementById("modalTitle").textContent = "✏️ แก้ไขสถานที่";
+                        document.getElementById("locationId").value = location.id;
+                        document.getElementById("locationName").value = location.name || "";
+                        document.getElementById("description").value = location.description || "";
+                        document.getElementById("totalSpots").value = location.total_spots || "";
+                        document.getElementById("availableSpots").value = location.available_spots || "";
+                        document.getElementById("cameraUrl").value = location.camera_url || "";
+                        document.getElementById("locationOwner").value = location.owner || "";
+
+                        const previewImage = document.getElementById("previewImage");
+                        if (location.image_url) {
+                            previewImage.src = location.image_url;
+                            previewImage.classList.remove("hidden");
+                        } else {
+                            previewImage.classList.add("hidden");
+                        }
+
+                        document.getElementById("locationModal").style.display = "flex";
+                    } else {
+                        alert("❌ ไม่พบสถานที่");
+                    }
+                })
+                .catch(error => console.error("❌ Error fetching location data:", error));
+        }
+
+
+
+
+
+        function saveLocation() {
+            console.log("✅ saveLocation() ถูกเรียกแล้ว!"); // ✅ Debug
+
+            const locationId = document.getElementById("locationId").value;
+            const formData = new FormData();
+            formData.append("csrfmiddlewaretoken", getCSRFToken());
+            formData.append("name", document.getElementById("locationName").value);
+            formData.append("description", document.getElementById("description").value);
+            formData.append("total_spots", document.getElementById("totalSpots").value);
+            formData.append("available_spots", document.getElementById("availableSpots").value);
+            formData.append("camera_url", document.getElementById("cameraUrl").value);
+
+            const ownerElement = document.getElementById("locationOwner");
+            if (ownerElement) {
+                formData.append("owner", ownerElement.value);
+            } else {
+                console.error("❌ ไม่พบ Element `locationOwner`");
+            }
+
+            const imageInput = document.getElementById("image");
+            if (imageInput.files.length > 0) {
+                formData.append("image", imageInput.files[0]);
+            }
+
+            const url = locationId ? `/locations/edit/${locationId}/` : "/locations/add/";
+
+            console.log("📤 กำลังส่งข้อมูลไปยัง:", url);
+            console.log("📤 ข้อมูลที่ถูกส่ง:", Object.fromEntries(formData.entries()));
+
+            fetch(url, {
+                method: "POST",
+                body: formData,
+                credentials: "include"
+            })
+                .then(response => response.json())
+                .then(data => {
+                    console.log("📥 คำตอบจาก Backend:", data);
+                    if (data.success) {
+                        alert("✅ บันทึกข้อมูลสำเร็จ!");
+                        location.reload();
+                    } else {
+                        alert("❌ เกิดข้อผิดพลาด: " + data.error);
+                    }
+                })
+                .catch(error => {
+                    console.error("❌ Error calling API:", error);
+                    alert("❌ API call failed. Check Console.");
+                });
+        }
+
+
+
+
+
+
+
+
+
+        function deleteLocation(locationId) {
+            if (!confirm("คุณแน่ใจหรือไม่ว่าต้องการลบสถานที่นี้?")) return;
+
+            fetch(`/locations/delete/${parseInt(locationId)}/`, {
+                method: "DELETE",
+                headers: {
+                    "X-CSRFToken": getCSRFToken()
+                }
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert("✅ ลบสถานที่สำเร็จ!");
+                        location.reload();
+                    } else {
+                        alert("❌ ลบไม่สำเร็จ: " + data.error);
+                    }
+                })
+                .catch(error => console.error("Error:", error));
+        }
+        function closeLocationModal() {
+            const modal = document.getElementById("locationModal");
+            modal.style.display = "none";  // ✅ ซ่อน Modal
+            document.body.style.overflow = "auto"; // ✅ คืนค่าการ Scroll ของหน้าเว็บ
+        }
+
+
+
+
+        function getCSRFToken() {
+            const tokenElement = document.querySelector("input[name=csrfmiddlewaretoken]");
+            if (!tokenElement) {
+                console.error("❌ ไม่พบ CSRF Token! ตรวจสอบว่า `<input type='hidden' name='csrfmiddlewaretoken'>` อยู่ใน HTML หรือไม่");
+                return "";
+            }
+            console.log("🔑 CSRF Token:", tokenElement.value);
+            return tokenElement.value;
+        }
+
+    </script>
+</body>
+
+</html>

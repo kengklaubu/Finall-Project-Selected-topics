@@ -786,8 +786,195 @@ def delete_parking_spot(request, spot_id):
             return JsonResponse({"success": False, "error": "ไม่พบช่องจอดที่ต้องการลบ!"})
     return JsonResponse({"success": False, "error": "ไม่รองรับการร้องขอแบบนี้!"})
 
+from django.shortcuts import render
+from .models import CustomUser # ตรวจสอบให้แน่ใจว่าใช้ Model ที่ถูกต้อง
+
+def user_management(request):
+    user_roles = CustomUser.ROLE_CHOICES
+    users = CustomUser.objects.all()
+    return render(request, 'admin/user_management.html', {'users': users, 'user_roles': user_roles})
 
 
+from django.shortcuts import render
+from .models import ParkingLocation, CustomUser # ตรวจสอบให้แน่ใจว่าใช้ Model ที่ถูกต้อง
+
+def locations_management(request):
+    users = CustomUser.objects.all()
+    locations = ParkingLocation.objects.all()
+    return render(request, 'admin/locations_management.html', {'locations': locations, 'users': users})
+
+
+
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+import json
+from .models import CustomUser  # ตรวจสอบให้แน่ใจว่าใช้ Model ที่ถูกต้อง
+
+@csrf_exempt
+def update_user(request, user_id):
+    if request.method == "POST":
+        try:
+            data = json.loads(request.body)
+            user = CustomUser.objects.get(id=user_id)
+            user.username = data["username"]
+            user.email = data["email"]
+            user.role = data["role"]
+            user.save()
+
+            return JsonResponse({"success": True})
+        except Exception as e:
+            return JsonResponse({"success": False, "error": str(e)})
+    
+    return JsonResponse({"success": False, "error": "Invalid request"}, status=400)
+
+
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from .models import CustomUser  # ใช้ Model ที่ถูกต้อง
+import json
+
+@csrf_exempt
+def delete_user(request, user_id):
+    if request.method == "DELETE":
+        try:
+            user = CustomUser.objects.get(id=user_id)
+            user.delete()
+            return JsonResponse({"success": True})
+        except CustomUser.DoesNotExist:
+            return JsonResponse({"success": False, "error": "ไม่พบผู้ใช้"})
+        except Exception as e:
+            return JsonResponse({"success": False, "error": str(e)})
+    
+    return JsonResponse({"success": False, "error": "Method not allowed"}, status=405)
+
+
+@csrf_exempt
+def add_user(request):
+    if request.method == "POST":
+        try:
+            data = json.loads(request.body)
+            new_user = CustomUser.objects.create_user(
+                username=data["username"],
+                email=data["email"],
+                password=data["password"],
+                role=data["role"]
+            )
+            return JsonResponse({"success": True, "user_id": new_user.id})
+        except Exception as e:
+            return JsonResponse({"success": False, "error": str(e)})
+    
+    return JsonResponse({"success": False, "error": "Method not allowed"}, status=405)
+
+
+
+
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.shortcuts import get_object_or_404
+from .models import ParkingLocation
+from django.contrib.auth import get_user_model
+
+User = get_user_model()
+
+@csrf_exempt
+def add_location(request):
+    if request.method == "POST":
+        try:
+            print("📥 รับข้อมูลจาก Frontend:", request.POST)
+
+            name = request.POST.get("name")
+            description = request.POST.get("description")
+            total_spots = request.POST.get("total_spots")
+            available_spots = request.POST.get("available_spots")
+            camera_url = request.POST.get("camera_url")
+            owner_id = request.POST.get("owner")
+
+            if not owner_id:
+                return JsonResponse({"success": False, "error": "Missing owner ID"})
+
+            owner = get_object_or_404(User, id=owner_id)
+            image = request.FILES.get("image") if "image" in request.FILES else None
+
+            location = ParkingLocation(
+                name=name,
+                description=description,
+                total_spots=total_spots,
+                available_spots=available_spots,
+                camera_url=camera_url,
+                owner=owner,
+                image=image
+            )
+            location.save()
+
+            return JsonResponse({"success": True, "message": "สถานที่ถูกเพิ่มแล้ว"})
+        except Exception as e:
+            print("❌ Error:", str(e))
+            return JsonResponse({"success": False, "error": str(e)})
+
+
+@csrf_exempt
+def edit_location(request, location_id):
+    location = get_object_or_404(ParkingLocation, id=location_id)
+    if request.method == "POST":
+        print("📥 ข้อมูลที่รับมา:", request.POST)  # ✅ Debug
+        print("📷 ไฟล์ที่แนบมา:", request.FILES)
+
+        try:
+            location.name = request.POST.get("name")
+            location.description = request.POST.get("description")
+            location.total_spots = request.POST.get("total_spots")
+            location.available_spots = request.POST.get("available_spots")
+            location.camera_url = request.POST.get("camera_url")
+
+            owner_id = request.POST.get("owner")
+            if owner_id:
+                location.owner = get_object_or_404(User, id=owner_id)
+
+            if "image" in request.FILES:
+                location.image = request.FILES["image"]
+
+            location.save()
+            return JsonResponse({"success": True, "message": "สถานที่ถูกแก้ไขแล้ว"})
+        except Exception as e:
+            print("❌ Error:", str(e))
+            return JsonResponse({"success": False, "error": str(e)})
+
+
+
+
+
+
+
+@csrf_exempt
+def delete_location(request, location_id):
+    location = get_object_or_404(ParkingLocation, id=location_id)
+    location.delete()
+    return JsonResponse({"success": True, "message": "สถานที่ถูกลบแล้ว"})
+
+
+
+
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.shortcuts import get_object_or_404
+from .models import ParkingLocation
+
+@csrf_exempt
+def get_location(request, location_id):
+    location = get_object_or_404(ParkingLocation, id=location_id)
+    
+    data = {
+        "id": location.id,
+        "name": location.name,
+        "description": location.description or "",
+        "total_spots": location.total_spots,
+        "available_spots": location.available_spots,
+        "camera_url": location.camera_url or "",
+        "owner": location.owner.id if location.owner else "",
+        "image_url": location.image.url if location.image else None  # ✅ เช็คก่อนว่ามีภาพไหม
+    }
+    
+    return JsonResponse({"success": True, "location": data})
 
 
 
