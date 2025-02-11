@@ -3,6 +3,8 @@ from . import views
 from django.contrib.auth.views import LoginView
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import views as auth_views
+from django.conf import settings
+from django.conf.urls.static import static
 
 
 
@@ -38,6 +40,16 @@ urlpatterns = [
     path('update-profile/', views.update_profile, name='update_profile'),
     path("update_parking_spot_position/", views.update_parking_spot_position, name="update_parking_spot_position"),
     path('delete_parking_spot/<int:spot_id>/', views.delete_parking_spot, name='delete_parking_spot'),
+    path('user_management/', views.user_management, name='user_management'),
+    path('update_user/<int:user_id>/', views.update_user, name='update_user'),
+    path("delete_user/<int:user_id>/", views.delete_user, name="delete_user"),
+    path("add_user/", views.add_user, name="add_user"),
+    path("locations_management/", views.locations_management, name="locations_management"),
+    path('locations/add/', views.add_location, name='add_location'),
+    path('locations/edit/<int:location_id>/', views.edit_location, name='edit_location'),
+    path('locations/delete/<int:location_id>/', views.delete_location, name='delete_location'),
+    path('locations/get/<int:location_id>/', views.get_location, name='get_location'), 
+
 
     
     
@@ -51,4 +63,4 @@ urlpatterns = [
     path('reset/done/', auth_views.PasswordResetCompleteView.as_view(), name='password_reset_complete'),
 
     
-]
+] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

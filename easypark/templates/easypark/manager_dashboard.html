@@ -246,7 +246,7 @@
             }
 
             // ✅ อัปเดตสถานะที่จอดรถทุกๆ 5 วินาที
-            setInterval(fetchParkingStatus, 5000);
+            setInterval(fetchParkingStatus, 1000);
 
 
 
@@ -408,7 +408,7 @@
                             }
                         })
                         .catch(error => console.error("❌ Error:", error));
-                    setInterval(fetchParkingStatus, 3000);
+                    setInterval(fetchParkingStatus, 1000);
                 }
 
                 function showToast(message, type = "info") {
@@ -518,6 +518,8 @@
                         .catch(error => console.error("❌ Error:", error));
                 });
 
+                
+
                 // ✅ Live Camera Feed อัปเดตอัตโนมัติ
                 const liveStream = document.getElementById('live-stream');
                 liveStream.src = `/stream/{{ location.id }}/`;
@@ -528,7 +530,7 @@
                     }
                 });
             });
-            setInterval(fetchParkingStatus, 3000);
+            setInterval(fetchParkingStatus, 1000);
         </script>
 
 
