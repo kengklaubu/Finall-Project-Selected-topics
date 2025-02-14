@@ -57,7 +57,8 @@ class ParkingSpot(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     x_position = models.IntegerField(default=100, null=True, blank=True)  # ความกว้าง
     y_position = models.IntegerField(default=100, null=True, blank=True)  # ความยาว
-
+    width = models.IntegerField(default=100, null=True, blank=True)  # ความกว้าง
+    height = models.IntegerField(default=100, null=True, blank=True)  # ความยาว
     def __str__(self):
         return f"Spot {self.spot_number} at {self.location.name}"
 

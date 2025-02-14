@@ -3,7 +3,7 @@
 import cv2
 import torch
 import threading
-from easypark.models import ParkingLocation
+from easypark.models import ParkingLocation,ParkingSpot
 from django.shortcuts import get_object_or_404
 from django.http import StreamingHttpResponse
 
@@ -28,10 +28,10 @@ rois = {
     "locaiontest": [(400, 400, 200, 200),(700, 200, 200, 200),(1000, 200, 200, 200)],
 }
 
-def generate_frames(camera_url, location_name):  # ✅ ต้องมีทั้ง 2 argument
-    cap = cv2.VideoCapture(camera_url)
+def generate_frames(location):  # ✅ ต้องมีทั้ง 2 argument
+    cap = cv2.VideoCapture(location.camera_url)
     if not cap.isOpened():
-        print(f"Cannot connect to camera: {camera_url}")
+        print(f"Cannot connect to camera: {location.camera_url}")
         return
 
     while True:
@@ -41,21 +41,24 @@ def generate_frames(camera_url, location_name):  # ✅ ต้องมีทั�
 
         # ตรวจจับวัตถุ
         results = model(frame)
-        detections = results.pandas().xyxy[0]
+        #detections = results.pandas().xyxy[0]
+        detections = []
+        rois = ParkingSpot.objects.filter(location=location)
+
 
         # วาด ROIs
         # วาด ROIs และเพิ่มข้อความ
-        for idx, (x, y, w, h) in enumerate(rois.get(location_name, [])):
-            cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
-            cv2.putText(frame, f"Spot {idx+1}", (x, y - 5), 
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 0), 2)
+        #for idx, (x, y, w, h) in enumerate(rois.get(location_name, [])):
+        for spot in rois:
+            cv2.rectangle(frame, (spot.x_position, spot.y_position), (spot.x_position + spot.width, spot.y_position + spot.height), (0, 255, 0), 2)
+            
 
 
         # วาด bounding box ของรถที่ตรวจจับได้
-        for _, row in detections.iterrows():
-            x1, y1, x2, y2, conf, cls = int(row['xmin']), int(row['ymin']), int(row['xmax']), int(row['ymax']), row['confidence'], row['name']
-            cv2.rectangle(frame, (x1, y1), (x2, y2), (255, 0, 0), 2)
-            cv2.putText(frame, f"{cls} {conf:.2f}", (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
+        # for _, row in detections.iterrows():
+        #     x1, y1, x2, y2, conf, cls = int(row['xmin']), int(row['ymin']), int(row['xmax']), int(row['ymax']), row['confidence'], row['name']
+        #     cv2.rectangle(frame, (x1, y1), (x2, y2), (255, 0, 0), 2)
+        #     cv2.putText(frame, f"{cls} {conf:.2f}", (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
 
         _, buffer = cv2.imencode('.jpg', frame)
         frame = buffer.tobytes()
