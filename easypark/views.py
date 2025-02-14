@@ -345,7 +345,7 @@ def video_feed(request, location_id):
         return StreamingHttpResponse(b'Error: Camera URL not found', content_type="text/plain")
 
     return StreamingHttpResponse(
-        generate_frames(camera_url, location.name),  # ✅ ส่งทั้ง `camera_url` และ `location.name`
+        generate_frames(location),  # ✅ ส่งทั้ง `camera_url` และ `location.name`
         content_type="multipart/x-mixed-replace; boundary=frame"
     )
 

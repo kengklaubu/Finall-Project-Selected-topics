@@ -291,6 +291,7 @@
             fetchParkingStatus();
         });
 
+
         function fetchParkingStatus() {
             console.log("Fetching parking status...");
             const locationId = document.getElementById('location-select').value || "{{ location.id }}";
@@ -337,7 +338,7 @@
         }
 
         // ✅ อัปเดตสถานะทุก 2 วินาที
-        setInterval(fetchParkingStatus, 2000);
+        //setInterval(fetchParkingStatus, 2000);
 
 
 
@@ -402,7 +403,7 @@
         }
 
         // ดึงข้อมูลอัตโนมัติทุก 2 วินาที
-        setInterval(fetchParkingStatus, 2000);
+        //setInterval(fetchParkingStatus, 2000);
     </script>
 
 
