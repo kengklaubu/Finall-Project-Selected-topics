@@ -3,7 +3,8 @@
 import cv2
 import torch
 import threading
-from easypark.models import ParkingLocation,ParkingSpot
+import numpy as np
+from easypark.models import ParkingLocation, ParkingSpot, ROI
 from django.shortcuts import get_object_or_404
 from django.http import StreamingHttpResponse
 
@@ -18,48 +19,45 @@ def load_model():
 
 model = load_model()
 
-# ROIs ของแต่ละสถานที่  # x y  width height
-rois = {
-    "อ้อมใหญ่": [(50, 480, 150, 150),(530, 260, 150, 150),(750, 200, 120, 120)],
-    "วงเวียนอุบล": [(200, 430, 150, 150), (80, 200, 150, 150)],
-    "วงเวียนร้อยเอ็ด": [(400, 400, 200, 200),(700, 200, 200, 200),(1000, 200, 200, 200)],
-    "อาคารศิลปะศาสตร์": [(300, 300, 200, 200), (600, 200, 200, 200)],
-    "ตึกเภสัช": [(400, 400, 200, 200),(700, 200, 200, 200),(1000, 200, 200, 200)],
-    "locaiontest": [(400, 400, 200, 200),(700, 200, 200, 200),(1000, 200, 200, 200)],
-}
-
-def generate_frames(location):  # ✅ ต้องมีทั้ง 2 argument
-    cap = cv2.VideoCapture(location.camera_url)
+def generate_frames(location):  
+    """ สตรีมวิดีโอจากกล้องของสถานที่ และวาด ROIs ตามข้อมูลในฐานข้อมูล """
+    
+    cap = cv2.VideoCapture(location.camera_url)  # เปิดกล้อง
     if not cap.isOpened():
         print(f"Cannot connect to camera: {location.camera_url}")
         return
-
+    
     while True:
         success, frame = cap.read()
         if not success:
             break
 
-        # ตรวจจับวัตถุ
-        results = model(frame)
-        #detections = results.pandas().xyxy[0]
-        detections = []
-        rois = ParkingSpot.objects.filter(location=location)
+        # ✅ แปลงเฟรมเป็น numpy array (ใช้สำหรับ YOLOv5)
+        frame = np.array(frame)
 
+        # ✅ ดึง ROIs จากฐานข้อมูลตามสถานที่
+        rois = ROI.objects.filter(location=location)
 
-        # วาด ROIs
-        # วาด ROIs และเพิ่มข้อความ
-        #for idx, (x, y, w, h) in enumerate(rois.get(location_name, [])):
-        for spot in rois:
-            cv2.rectangle(frame, (spot.x_position, spot.y_position), (spot.x_position + spot.width, spot.y_position + spot.height), (0, 255, 0), 2)
-            
+        # ✅ วาด ROIs (กรอบจอดรถ)
+        for roi in rois:
+            x, y, w, h = int(roi.x_position), int(roi.y_position), int(roi.width), int(roi.height)
+            cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)  # ✅ สีเขียว
 
+        # ✅ ตรวจจับวัตถุด้วย YOLOv5
+        if model is not None:
+            results = model(frame)  # 🔹 ตรวจจับรถ
+            detections = results.pandas().xyxy[0]  # 🔹 ดึงผลลัพธ์ในรูปแบบ pandas DataFrame
 
-        # วาด bounding box ของรถที่ตรวจจับได้
-        # for _, row in detections.iterrows():
-        #     x1, y1, x2, y2, conf, cls = int(row['xmin']), int(row['ymin']), int(row['xmax']), int(row['ymax']), row['confidence'], row['name']
-        #     cv2.rectangle(frame, (x1, y1), (x2, y2), (255, 0, 0), 2)
-        #     cv2.putText(frame, f"{cls} {conf:.2f}", (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
+            # ✅ วาด bounding box ของรถที่ตรวจจับได้
+            for _, row in detections.iterrows():
+                x1, y1, x2, y2 = int(row['xmin']), int(row['ymin']), int(row['xmax']), int(row['ymax'])
+                conf, cls = row['confidence'], row['name']
 
+                cv2.rectangle(frame, (x1, y1), (x2, y2), (255, 0, 0), 2)  # 🔹 สีฟ้า
+                cv2.putText(frame, f"{cls} {conf:.2f}", (x1, y1 - 10), 
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
+
+        # ✅ แปลงภาพเป็นไฟล์ JPEG
         _, buffer = cv2.imencode('.jpg', frame)
         frame = buffer.tobytes()
 

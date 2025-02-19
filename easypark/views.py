@@ -99,10 +99,11 @@ def admin_dashboard(request):
 from django.shortcuts import render, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponseForbidden
-from .models import ParkingLocation ,Reservation, ParkingSpot,Booking
+from .models import ParkingLocation ,Reservation, ParkingSpot,Booking,ROI
 
 @login_required
 def manager_dashboard(request, location_id):
+    rois = ROI.objects.all()
     # ค้นหา location ที่ผู้ใช้เป็นเจ้าของ
     location = ParkingLocation.objects.get(id=location_id)
 
@@ -114,6 +115,7 @@ def manager_dashboard(request, location_id):
     reservations = Reservation.objects.filter(parking_spot__location=location)
     bookings = Booking.objects.filter(parking_spot__location=location)
     parking_spots = ParkingSpot.objects.filter(location=location)
+    rois = ROI.objects.filter(location=location)
 
     # ส่งข้อมูลทั้งหมดไปยัง template
     return render(request, 'easypark/manager_dashboard.html', {
@@ -121,7 +123,8 @@ def manager_dashboard(request, location_id):
         'reservations': reservations,
         'parking_spots': parking_spots,
         'current_location': location.name,
-        'bookings': bookings
+        'bookings': bookings,
+        'rois': rois
     })
 
 from django.shortcuts import render, redirect
@@ -1065,6 +1068,73 @@ def delete_location(request, location_id):
             return JsonResponse({"success": False, "error": str(e)})
     else:
         return JsonResponse({"success": False, "error": "Invalid request method"})
+
+
+import json
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from .models import ROI
+
+@csrf_exempt
+def update_roi_position(request):
+    if request.method == "POST":
+        try:
+            data = json.loads(request.body)
+            roi = ROI.objects.get(id=data["roi_id"])
+            roi.x_position = float(data["x_position"])
+            roi.y_position = float(data["y_position"])
+            roi.save()
+            return JsonResponse({"success": True, "roi_id": roi.id})
+        except Exception as e:
+            return JsonResponse({"success": False, "error": str(e)})
+    return JsonResponse({"success": False, "error": "Invalid request"})
+
+
+import os
+import cv2
+from django.conf import settings
+from django.http import JsonResponse
+from easypark.models import ParkingLocation
+
+def capture_frame(request, location_id):
+    """แคปภาพจากกล้องของสถานที่ และบันทึกเป็นไฟล์"""
+    try:
+        location = ParkingLocation.objects.get(id=location_id)
+        camera_url = location.camera_url
+        
+        cap = cv2.VideoCapture(camera_url)
+        success, frame = cap.read()
+        cap.release()
+        
+        if not success:
+            return JsonResponse({'success': False, 'error': 'ไม่สามารถจับภาพจากกล้องได้'}, status=500)
+
+        # ✅ สร้างโฟลเดอร์ `media/roi_snapshots/` ถ้ายังไม่มี
+        roi_dir = os.path.join(settings.MEDIA_ROOT, 'roi_snapshots')
+        if not os.path.exists(roi_dir):
+            os.makedirs(roi_dir)  # ✅ สร้างโฟลเดอร์ถ้ายังไม่มี
+
+        # ✅ กำหนด path ของไฟล์ภาพ
+        image_path = f'roi_snapshots/location_{location_id}.jpg'
+        full_path = os.path.join(settings.MEDIA_ROOT, image_path)
+
+        # ✅ บันทึกภาพ
+        save_success = cv2.imwrite(full_path, frame)
+
+        if not save_success:
+            return JsonResponse({'success': False, 'error': 'บันทึกไฟล์ภาพไม่สำเร็จ'}, status=500)
+
+        return JsonResponse({'success': True, 'image_url': settings.MEDIA_URL + image_path})
+
+    except ParkingLocation.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'ไม่พบสถานที่'}, status=404)
+
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+
+
 
 
 

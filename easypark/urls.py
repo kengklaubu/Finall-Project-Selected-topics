@@ -45,15 +45,12 @@ urlpatterns = [
     path("delete_user/<int:user_id>/", views.delete_user, name="delete_user"),
     path("add_user/", views.add_user, name="add_user"),
     path("locations_management/", views.locations_management, name="locations_management"),
-  
-
- 
     path('dashboard/locations/edit/<int:location_id>/', views.admin_edit_location, name='admin_edit_location'),
-
-
     path('locations/add/', views.admin_add_location, name='admin_add_location'),
     path('locations/delete/<int:location_id>/', views.delete_location, name='delete_location'),  # ✅ ต้องมีเส้นทางนี้
     path('locations/get/<int:location_id>/', views.get_location, name='get_location'),
+    path("update_roi_position/", views.update_roi_position, name="update_roi_position"),
+    path('capture_frame/<int:location_id>/', views.capture_frame, name='capture_frame'),
 
 
 

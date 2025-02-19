@@ -74,3 +74,20 @@ class CustomUserAdmin(UserAdmin):
 
 admin.site.register(CustomUser, CustomUserAdmin)
 
+from django.contrib import admin
+from .models import ROI
+
+@admin.register(ROI)
+class ROIAdmin(admin.ModelAdmin):
+    list_display = ("name", "location", "parking_spot", "x_position", "y_position", "width", "height", "updated_at")
+    search_fields = ("name",)
+    fieldsets = (
+        (None, {
+            'fields': ("name", "location", "parking_spot", "x_position", "y_position", "width", "height")
+        }),
+    )
+
+
+
+
+
