@@ -101,6 +101,33 @@
             ➕ เพิ่มช่องจอด
         </button>
 
+
+        <!-- ✅ Modal สำหรับลาก ROIs -->
+        <div id="roi-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+            <div class="bg-white p-6 rounded-lg shadow-lg w-[600px]">
+                <h2 class="text-xl font-bold mb-4 text-gray-800">📌 ขยับกรอบ ROIs</h2>
+                <div class="border border-gray-400 p-4 relative">
+                    <svg id="roi-svg" width="500" height="300" class="border border-gray-300">
+                        <!-- ✅ ใช้ภาพจากกล้องเป็นพื้นหลัง -->
+                        <image id="roi-background" width="500" height="300" href="" />
+
+                        {% for roi in rois %}
+                        <rect id="roi-{{ roi.id }}" class="draggable-roi" x="{{ roi.x_position }}"
+                            y="{{ roi.y_position }}" width="{{ roi.width }}" height="{{ roi.height }}"
+                            fill="rgba(0, 0, 255, 0.5)" stroke="blue" stroke-width="2" data-id="{{ roi.id }}"></rect>
+                        {% endfor %}
+                    </svg>
+                </div>
+                <button id="close-roi-modal"
+                    class="mt-4 w-full bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600">
+                    ❌ ปิด
+                </button>
+            </div>
+        </div>
+
+
+
+
         <!-- โมดอลสำหรับเพิ่มช่องจอด -->
         <div id="add-spot-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
             <div class="bg-white p-6 rounded-lg shadow-lg w-96">
@@ -130,6 +157,39 @@
         </div>
         <!-- ✅ Toast Notification -->
         <div id="toast-container" class="fixed top-4 right-4 space-y-2 z-50"></div>
+
+        <!-- ✅ Modal แสดงข้อมูล ROIs -->
+        <div id="roi-info-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+            <div class="bg-white p-6 rounded-lg shadow-lg w-96">
+                <h2 class="text-xl font-bold mb-4 text-gray-800">📌 ข้อมูล ROIs</h2>
+
+                <label class="block text-gray-700 font-semibold">ชื่อ ROI:</label>
+                <input type="text" id="roi-name" class="w-full px-4 py-2 border rounded-md">
+
+                <label class="block text-gray-700 font-semibold mt-2">ตำแหน่ง X:</label>
+                <input type="number" id="roi-x" class="w-full px-4 py-2 border rounded-md">
+
+                <label class="block text-gray-700 font-semibold mt-2">ตำแหน่ง Y:</label>
+                <input type="number" id="roi-y" class="w-full px-4 py-2 border rounded-md">
+
+                <label class="block text-gray-700 font-semibold mt-2">ความกว้าง:</label>
+                <input type="number" id="roi-width" class="w-full px-4 py-2 border rounded-md">
+
+                <label class="block text-gray-700 font-semibold mt-2">ความสูง:</label>
+                <input type="number" id="roi-height" class="w-full px-4 py-2 border rounded-md">
+
+                <button id="save-roi-info"
+                    class="mt-4 w-full bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition">
+                    ✅ บันทึก
+                </button>
+
+                <button id="close-roi-info"
+                    class="mt-2 w-full bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition">
+                    ❌ ปิด
+                </button>
+            </div>
+        </div>
+
 
 
         <!-- ตารางรายการช่องจอด -->
@@ -210,7 +270,9 @@
         <!-- ✅ Live Camera Feed -->
         <div class=" container mx-auto mt-8 bg-white p-6 rounded-lg shadow-lg max-w-3xl">
             <h2 class="text-2xl font-bold text-gray-800 mb-4">📷 Live Camera Feed</h2>
-            <button id="start-live-stream" class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition">✅ ขยับช่อง rois</button>
+            <button id="edit-roi-btn" class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition">
+                ✅ ขยับช่อง rois
+            </button>
             <div class="overflow-hidden rounded-lg border border-gray-300 bg-gray-100 flex justify-center">
                 <img id="live-stream" class="w-full max-w-2xl h-90 object-cover rounded-lg" src="" alt="Live Stream">
             </div>
@@ -218,6 +280,155 @@
 
         <!-- ✅ JavaScript -->
         <script>
+            document.addEventListener("DOMContentLoaded", function () {
+                const roiInfoModal = document.getElementById("roi-info-modal");
+                const roiNameInput = document.getElementById("roi-name");
+                const roiXInput = document.getElementById("roi-x");
+                const roiYInput = document.getElementById("roi-y");
+                const roiWidthInput = document.getElementById("roi-width");
+                const roiHeightInput = document.getElementById("roi-height");
+                let selectedROI = null;
+
+                function showROIInfo(event) {
+                    if (event.target.classList.contains("draggable-roi")) {
+                        selectedROI = event.target;
+
+                        // ✅ ดึงค่า ROIs
+                        roiNameInput.value = selectedROI.getAttribute("data-name");
+                        roiXInput.value = selectedROI.getAttribute("x");
+                        roiYInput.value = selectedROI.getAttribute("y");
+                        roiWidthInput.value = selectedROI.getAttribute("width");
+                        roiHeightInput.value = selectedROI.getAttribute("height");
+
+                        roiInfoModal.classList.remove("hidden");
+                    }
+                }
+
+                document.getElementById("save-roi-info").addEventListener("click", function () {
+                    if (selectedROI) {
+                        selectedROI.setAttribute("x", roiXInput.value);
+                        selectedROI.setAttribute("y", roiYInput.value);
+                        selectedROI.setAttribute("width", roiWidthInput.value);
+                        selectedROI.setAttribute("height", roiHeightInput.value);
+
+                        roiInfoModal.classList.add("hidden");
+
+                        // ✅ บันทึกลงฐานข้อมูล
+                        fetch(`/update_roi_position/`, {
+                            method: "POST",
+                            headers: {
+                                "Content-Type": "application/json",
+                                "X-CSRFToken": document.querySelector("[name=csrfmiddlewaretoken]").value
+                            },
+                            body: JSON.stringify({
+                                roi_id: selectedROI.getAttribute("data-id"),
+                                x_position: roiXInput.value,
+                                y_position: roiYInput.value,
+                                width: roiWidthInput.value,
+                                height: roiHeightInput.value
+                            })
+                        });
+                    }
+                });
+
+                document.getElementById("close-roi-info").addEventListener("click", function () {
+                    roiInfoModal.classList.add("hidden");
+                });
+
+                document.getElementById("roi-svg").addEventListener("click", showROIInfo);
+            });
+
+            document.addEventListener("DOMContentLoaded", function () {
+                const roiModal = document.getElementById("roi-modal");
+                const roiSvg = document.getElementById("roi-svg");
+                const roiBackground = document.getElementById("roi-background");
+
+                document.getElementById("edit-roi-btn").addEventListener("click", function () {
+                    // ✅ เรียก API แคปภาพ
+                    fetch(`/capture_frame/{{ location.id }}/`)
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                roiBackground.setAttribute("href", data.image_url);  // ✅ ตั้งค่าภาพพื้นหลัง
+                                roiModal.classList.remove("hidden");
+                            } else {
+                                console.error("Error capturing frame:", data.error);
+                            }
+                        });
+                });
+
+                document.getElementById("close-roi-modal").addEventListener("click", function () {
+                    roiModal.classList.add("hidden");
+                });
+            });
+
+            document.addEventListener("DOMContentLoaded", function () {
+                const svgROI = document.getElementById("roi-svg");
+                let selectedElement = null;
+                let offset = { x: 0, y: 0 };
+
+                function startDragROI(event) {
+                    if (event.target.classList.contains("draggable-roi")) {
+                        selectedElement = event.target;
+                        offset.x = event.clientX - selectedElement.getBBox().x;
+                        offset.y = event.clientY - selectedElement.getBBox().y;
+
+                        svgROI.addEventListener("mousemove", drag);
+                        svgROI.addEventListener("mouseup", endDragROI);
+                    }
+                }
+
+                function drag(event) {
+                    if (selectedElement) {
+                        let x = event.clientX - offset.x;
+                        let y = event.clientY - offset.y;
+                        selectedElement.setAttribute("x", x);
+                        selectedElement.setAttribute("y", y);
+                    }
+                }
+
+                function endDragROI() {
+                    if (selectedElement) {
+                        let roiId = selectedElement.getAttribute("data-id");
+                        let x = selectedElement.getAttribute("x");
+                        let y = selectedElement.getAttribute("y");
+
+                        fetch(`/update_roi_position/`, {
+                            method: "POST",
+                            headers: {
+                                "Content-Type": "application/json",
+                                "X-CSRFToken": document.querySelector("[name=csrfmiddlewaretoken]").value
+                            },
+                            body: JSON.stringify({
+                                roi_id: roiId,
+                                x_position: x,
+                                y_position: y
+                            })
+                        });
+
+                        selectedElement = null;
+                        svgROI.removeEventListener("mousemove", drag);
+                        svgROI.removeEventListener("mouseup", endDragROI);
+                    }
+                }
+
+                svgROI.addEventListener("mousedown", startDragROI);
+            });
+
+
+            // ✅ เปิด-ปิด Modal ขยับ ROIs
+            document.getElementById("edit-roi-btn").addEventListener("click", function () {
+                document.getElementById("roi-modal").classList.remove("hidden");
+                svgROI.addEventListener("mousedown", startDragROI);
+            });
+
+            document.getElementById("close-roi-modal").addEventListener("click", function () {
+                document.getElementById("roi-modal").classList.add("hidden");
+                svgROI.removeEventListener("mousedown", startDragROI);
+            });
+
+
+
             function fetchParkingStatus() {
                 console.log("🚗 กำลังดึงสถานะที่จอดรถ...");
 
@@ -521,7 +732,7 @@
                         .catch(error => console.error("❌ Error:", error));
                 });
 
-                
+
 
                 // ✅ Live Camera Feed อัปเดตอัตโนมัติ
                 const liveStream = document.getElementById('live-stream');
@@ -533,7 +744,7 @@
                     }
                 });
             });
-            //setInterval(fetchParkingStatus, 1000);
+            setInterval(fetchParkingStatus, 1000);
         </script>
 
 

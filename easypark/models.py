@@ -61,6 +61,14 @@ class ParkingSpot(models.Model):
     height = models.IntegerField(default=100, null=True, blank=True)  # ความยาว
     def __str__(self):
         return f"Spot {self.spot_number} at {self.location.name}"
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)  # บันทึก ParkingSpot ก่อน
+        ROI.objects.get_or_create(
+            name=f"ROI for Spot {self.spot_number}",
+            parking_spot=self,
+            location=self.location,  # เชื่อม ROI กับสถานที่นี้
+            defaults={"x_position": self.x_position, "y_position": self.y_position, "width": self.width, "height": self.height}
+        )
 
 
 # ------------------------ Booking Model (การจองปัจจุบัน) ------------------------
@@ -139,3 +147,21 @@ class Reservation(models.Model):
 
     def __str__(self):
         return f"Reservation (Completed) by {self.user.username} on {self.reservation_date}"
+
+
+from django.db import models
+
+class ROI(models.Model):
+    name = models.CharField(max_length=100)  # ชื่อของ ROI
+    location = models.ForeignKey("ParkingLocation", on_delete=models.CASCADE)  # เชื่อมกับสถานที่จอดรถ
+    parking_spot = models.OneToOneField("ParkingSpot", on_delete=models.CASCADE)  # เชื่อมกับช่องจอด
+    x_position = models.FloatField()  # ตำแหน่ง X
+    y_position = models.FloatField()  # ตำแหน่ง Y
+    width = models.FloatField()  # ความกว้าง
+    height = models.FloatField()  # ความสูง
+    created_at = models.DateTimeField(auto_now_add=True)  # เวลาสร้าง
+    updated_at = models.DateTimeField(auto_now=True)  # เวลาล่าสุดที่อัปเดต
+
+    def __str__(self):
+        return f"ROI for Spot {self.parking_spot.spot_number} at {self.location.name}"
+
