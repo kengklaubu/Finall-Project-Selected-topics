@@ -107,10 +107,10 @@
             <div class="bg-white p-6 rounded-lg shadow-lg w-[600px]">
                 <h2 class="text-xl font-bold mb-4 text-gray-800">📌 ขยับกรอบ ROIs</h2>
                 <div class="border border-gray-400 p-4 relative">
-                    <svg id="roi-svg" width="500" height="300" class="border border-gray-300">
+                    <svg id="roi-svg" viewBox="0 0 1920 1080" preserveAspectRatio="xMidYMid meet"
+                        class="border border-gray-300 w-full h-auto">
                         <!-- ✅ ใช้ภาพจากกล้องเป็นพื้นหลัง -->
-                        <image id="roi-background" width="500" height="300" href="" />
-
+                        <image id="roi-background" width="100%" height="100%" href="" />
                         {% for roi in rois %}
                         <rect id="roi-{{ roi.id }}" class="draggable-roi" x="{{ roi.x_position }}"
                             y="{{ roi.y_position }}" width="{{ roi.width }}" height="{{ roi.height }}"
@@ -744,7 +744,7 @@
                     }
                 });
             });
-            setInterval(fetchParkingStatus, 1000);
+            //setInterval(fetchParkingStatus, 1000);
         </script>
 
 
