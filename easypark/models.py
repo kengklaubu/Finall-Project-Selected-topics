@@ -164,4 +164,7 @@ class ROI(models.Model):
 
     def __str__(self):
         return f"ROI for Spot {self.parking_spot.spot_number} at {self.location.name}"
+    
+
+
 

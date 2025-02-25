@@ -2,19 +2,7 @@ import cv2
 import torch
 from django.apps import apps
 from .utils import update_parking_status  # ฟังก์ชันสำหรับอัปเดตสถานะ
-
-# ตัวอย่าง ROIs (ขึ้นอยู่กับ Location)
-rois = {
-    "อ้อมใหญ่": [
-        (1, 50, 220, 200, 200),   #spot x y width height
-        (2, 700, 200, 200, 200),
-        (3, 1000, 200, 200, 200),
-    ],
-    "วงเวียนอุบล": [
-        (1, 300, 300, 200, 200),
-        (2, 600, 200, 200, 200),
-    ],
-}
+import threading
 
 def load_model():
     """
@@ -31,7 +19,7 @@ def get_camera_url(location_name):
     """
     ดึง URL ของกล้องสำหรับ Location ที่เลือก
     """
-    ParkingLocation = apps.get_model('easypark', 'ParkingLocation')  # Lazy Load ParkingLocation
+    ParkingLocation = apps.get_model('easypark', 'ParkingLocation')
     try:
         location = ParkingLocation.objects.get(name=location_name)
         return location.camera_url
@@ -41,47 +29,57 @@ def get_camera_url(location_name):
     except Exception as e:
         print(f"Error retrieving camera URL: {e}")
         return None
-    
 
-import threading
+def get_rois_from_db(location_name):
+    """
+    ดึง ROIs จากฐานข้อมูลตามสถานที่ที่เลือก
+    """
+    ROI = apps.get_model('easypark', 'ROI')
+    ParkingLocation = apps.get_model('easypark', 'ParkingLocation')
 
-def start_detection_in_background():
+    try:
+        location = ParkingLocation.objects.get(name=location_name)
+        rois = ROI.objects.filter(location=location)
+        return [(roi.parking_spot.spot_number, roi.x_position, roi.y_position, roi.width, roi.height) for roi in rois]
+    except ParkingLocation.DoesNotExist:
+        print(f"Location '{location_name}' does not exist.")
+        return []
+    except Exception as e:
+        print(f"Error retrieving ROIs: {e}")
+        return []
+
+def start_detection_in_background(selected_location):
     """
     เริ่มการตรวจจับใน Background Thread
     """
-    def detect():
-        print("Starting detection in the background...")
-    thread = threading.Thread(target=detect, daemon=True)
+    thread = threading.Thread(target=detect_cars, args=(selected_location,), daemon=True)
     thread.start()
-
 
 def detect_cars(selected_location):
     """
     ตรวจจับรถยนต์ใน Location ที่เลือก และอัปเดตสถานะในฐานข้อมูล
     """
-    # โหลดโมเดล YOLOv5
     model = load_model()
     if not model:
         print("Model loading failed. Aborting detection.")
         return
 
-    # ดึง URL ของกล้อง
     camera_url = get_camera_url(selected_location)
     if not camera_url:
         print(f"Cannot find camera URL for location: {selected_location}")
         return
 
-    # เชื่อมต่อกับกล้อง
     cap = cv2.VideoCapture(camera_url)
     if not cap.isOpened():
         print(f"Cannot connect to camera for location: {selected_location}")
         return
 
-    # เลือก ROIs สำหรับ Location
-    current_rois = rois.get(selected_location, [])
+    current_rois = get_rois_from_db(selected_location)
     if not current_rois:
         print(f"No ROIs defined for location: {selected_location}")
         return
+
+    print(f"Starting detection for location: {selected_location}")
 
     while True:
         try:
@@ -90,18 +88,15 @@ def detect_cars(selected_location):
                 print(f"Cannot read frames from camera for location: {selected_location}")
                 break
 
-            # ตรวจจับวัตถุ
             results = model(frame)
             detections = results.pandas().xyxy[0]  # ดึงข้อมูล bounding boxes
 
-            # อัปเดตสถานะในฐานข้อมูล
             update_parking_status(current_rois, detections, selected_location)
 
         except Exception as e:
             print(f"Error during detection: {e}")
             break
 
-        # Delay ระหว่างการตรวจจับแต่ละครั้ง
         if cv2.waitKey(1000) & 0xFF == ord('q'):  # ทุก 1 วินาที
             break
 

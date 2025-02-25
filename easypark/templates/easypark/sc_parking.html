@@ -8,12 +8,14 @@
     <title>รายละเอียดสถานที่จอดรถ</title>
     <link href="{% static 'css/styles.css' %}" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@400;600&display=swap" rel="stylesheet">
     <style>
         body {
-            font-family: Arial, sans-serif;
+            font-family: 'Kanit', sans-serif;
             background-color: #f8f9fa;
             margin: 0;
             padding: 0;
+            color: #333;
         }
 
         .header {
@@ -74,7 +76,7 @@
     <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
 </head>
 
-<body>
+<body class="h-screen flex flex-col">
     <!-- Header Section -->
     <div class="header">
         <div class="logo">
@@ -111,20 +113,7 @@
             box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
         }
 
-        .parking-spot {
-            width: 50px;
-            height: 50px;
-            display: inline-block;
-            margin: 5px;
-            background-color: grey;
-            cursor: pointer;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            color: white;
-            font-weight: bold;
-            border-radius: 15px;
-        }
+
 
         .back-button {
             text-align: right;
@@ -145,23 +134,21 @@
 
         #details-container {
             display: none;
-            /* เริ่มต้นไม่แสดง */
             position: fixed;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
             background-color: white;
             padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 0 15px rgba(0, 0, 0, 0.3);
+            border-radius: 12px;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.4);
             z-index: 1000;
-            width: 400px;
-            max-width: 80%;
+            width: 90%;
+            max-width: 500px;
         }
 
         .modal-overlay {
             display: none;
-            /* เริ่มต้นไม่แสดง */
             position: fixed;
             top: 0;
             left: 0;
@@ -187,11 +174,8 @@
 
         .reserve-btn {
             background-color: #4CAF50;
-            /* สีเขียว */
             color: white;
             padding: 10px 20px;
-            font-size: 16px;
-            border: none;
             border-radius: 25px;
             cursor: pointer;
             transition: background-color 0.3s ease, transform 0.3s ease;
@@ -201,7 +185,6 @@
         .reserve-btn:hover {
             background-color: #45a049;
             transform: scale(1.05);
-
         }
 
         .reserve-btn:active {
@@ -214,13 +197,24 @@
             cursor: not-allowed;
             box-shadow: none;
         }
+
+        .footer {
+            background-color: #1e293b;
+            color: white;
+            text-align: center;
+            padding: 10px 0;
+            margin-top: auto;
+            /* ดัน Footer ไปติดขอบล่าง */
+        }
     </style>
 
     <!-- ใส่ Modal Overlay และ Details Container ไว้ก่อนปิด </body> -->
-    <div id="modal-overlay" class="modal-overlay" style="display: none;"></div>
-    <div id="details-container" class="details-container"
-        style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.3);">
+    <div id="modal-overlay" class="fixed inset-0 bg-black bg-opacity-50 z-40 hidden"></div>
+
+    <div id="details-container"
+        class="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white p-6 rounded-2xl shadow-xl max-w-lg w-full z-50 hidden">
     </div>
+
 
 
 
@@ -228,7 +222,8 @@
 
     <div class="flex w-full justify-around">
         <!-- ฝั่งแสดงรูป (ที่จอดรถ) -->
-        <div class="w-1/2 mt-8 max-w-2xl mx-auto bg-gray-300 p-6 rounded-lg shadow-xl">
+        <div class="w-1/2 mt-8 max-w-2xl mx-auto bg-white p-6 rounded-lg shadow-lg p-6 rounded-lg shadow-xl">
+            <h2 class="text-2xl font-bold mb-4 text-center">🅿️ รายละเอียดสถานที่จอดรถ</h2>
             <svg id="parking-map" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 300" width="100%" height="100%">
                 <image href="{{location.image.url}}" x_position="0" y_position="0" width="500" height="300" />
                 {% for spot in spots %}
@@ -250,8 +245,8 @@
         </div>
 
         <!-- ฝั่ง Live Camera Feed -->
-        <div class="w-1/2 mt-8 max-w-2xl mx-auto bg-gray-300 p-6 rounded-lg shadow-xl">
-            <h2 class="text-xl font-semibold mb-4 text-gray-700 text-center">Live Camera Feed</h2>
+        <div class="w-1/2 mt-8 max-w-2xl mx-auto bg-white p-6 rounded-lg shadow-lg p-6 rounded-lg shadow-xl">
+            <h2 class="text-2xl font-bold mb-4 text-center">🎥 Live Camera Feed</h2>
             <div class="mb-6">
                 <label for="location-select" class="block text-base font-medium text-gray-600 mb-2">Select
                     Location:</label>
@@ -270,6 +265,8 @@
             </div>
         </div>
     </div>
+
+
 
 
 
@@ -368,11 +365,20 @@
                     }
 
                     detailsContainer.innerHTML = `
-                <h3>ช่องจอดหมายเลข ${data.spot_number}</h3> <!-- แก้จาก data.id เป็น data.spot_number -->
-                <p>สถานะ: ${data.is_available ? "ว่าง" : "ไม่ว่าง"}</p>
-                <p>จองโดย: ${data.reserved_by || "ไม่มีข้อมูล"}</p>
-                ${data.is_available ? `<button class="reserve-btn" onclick="goToReservePage(${data.spot_number})">จองที่นี่</button>` : `<p style="color: red;">ไม่สามารถจองได้</p>`}
-                <button class="close-btn" onclick="closeModal()">ปิด</button>
+                <div class="space-y-4">
+                    <h3 class="text-xl font-bold text-gray-800">🚗 ช่องจอดหมายเลข ${data.spot_number}</h3>
+                    <p class="text-gray-600"><strong>สถานะ:</strong> ${data.is_available ?
+                            `<span class="text-green-500">ว่าง</span>` :
+                            `<span class="text-red-500">ไม่ว่าง</span>`}</p>
+                    <p class="text-gray-600"><strong>จองโดย:</strong> ${data.reserved_by || "ไม่มีข้อมูล"}</p>
+
+                    <div class="flex justify-end gap-2">
+                        ${data.is_available ?
+                            `<button class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition" onclick="goToReservePage(${data.spot_number})">🚀 จองที่นี่</button>`
+                            : `<p class="text-red-400">❌ ไม่สามารถจองได้</p>`}
+                        <button class="bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400 transition" onclick="closeModal()">❎ ปิด</button>
+                    </div>
+                </div>
             `;
 
                     showModal();
@@ -382,6 +388,7 @@
                 }
             });
         }
+
 
 
 
@@ -408,6 +415,9 @@
 
 
 
+    <footer class="footer">
+        <p>© 2025 Easy Parking. All Rights Reserved.</p>
+    </footer>
 
 </body>
 

@@ -14,14 +14,14 @@ urlpatterns = [
     path('api/get_parking_status', views.get_parking_status, name='get_parking_status'),
     path('api/get_spot_details', views.get_spot_details, name='get_spot_details'),
     path('reserve_page/<int:spot_number>/', login_required(views.reserve_page), name='reserve_page'),
-    path('confirm_reservation/', login_required(views.confirm_reservation), name='confirm_reservation'),
-    path('cancel_reservation/', views.cancel_reservation, name='cancel_reservation'),
+    path('cancel_booking/<int:booking_id>/', views.cancel_booking, name='cancel_booking'),
     path('login/',(views.login_page), name='login_page'),
     path('register/', views.register_page, name='register_page'),
     path('profile/', login_required(views.profile), name='profile'),
     path('accounts/login/', LoginView.as_view(template_name='easypark/login.html'), name='login'),
     path('logout/', views.logout_view, name='logout'),
-    path('password_reset/', views.password_reset, name='password_reset1221'),
+    path('success_page/', views.success_page, name='success_page'),
+    
     #path('locations/', views.locations_page, name='locations'),
     
     path('reservation_history/', views.reservation_history, name='reservation_history'),
@@ -51,6 +51,7 @@ urlpatterns = [
     path('locations/get/<int:location_id>/', views.get_location, name='get_location'),
     path("update_roi_position/", views.update_roi_position, name="update_roi_position"),
     path('capture_frame/<int:location_id>/', views.capture_frame, name='capture_frame'),
+    path('update_parking_image/<int:location_id>/', views.update_parking_image, name='update_parking_image'),
 
 
 
@@ -64,7 +65,7 @@ urlpatterns = [
 
 
     
-
+    path('password_reset/', views.password_reset, name='password_reset1221'),
     path('password_reset/', auth_views.PasswordResetView.as_view(), name='password_reset'),
     path('password_reset/done/', auth_views.PasswordResetDoneView.as_view(), name='password_reset_done'),
     path('reset/<uidb64>/<token>/', auth_views.PasswordResetConfirmView.as_view(), name='password_reset_confirm'),
