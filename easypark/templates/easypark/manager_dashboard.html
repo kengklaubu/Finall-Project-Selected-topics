@@ -123,7 +123,9 @@
                         {% for roi in rois %}
                         <rect id="roi-{{ roi.id }}" class="draggable-roi" x="{{ roi.x_position }}"
                             y="{{ roi.y_position }}" width="{{ roi.width }}" height="{{ roi.height }}"
-                            fill="rgba(0, 0, 255, 0.5)" stroke="blue" stroke-width="2" data-id="{{ roi.id }}"></rect>
+                            fill="rgba(0, 0, 255, 0.5)" stroke="blue" stroke-width="2" data-id="{{ roi.id }}"
+                            data-name="{{ roi.name }}"></rect>
+
                         {% endfor %}
                     </svg>
                 </div>
@@ -328,6 +330,8 @@
 
         <!-- ✅ JavaScript -->
         <script>
+
+
             // เปิด Modal
             document.getElementById('edit-image-btn').addEventListener('click', () => {
                 document.getElementById('edit-image-modal').classList.remove('hidden');
@@ -448,22 +452,30 @@
                 let selectedROI = null;
 
                 function showROIInfo(event) {
-                    if (event.target.classList.contains("draggable-roi")) {
-                        selectedROI = event.target;
+                    // ดักจับคลิกเฉพาะที่ ROI เท่านั้น
+                    if (!event.target.classList.contains("draggable-roi")) return;
 
-                        // ✅ ดึงค่า ROIs
-                        roiNameInput.value = selectedROI.getAttribute("data-name");
-                        roiXInput.value = selectedROI.getAttribute("x");
-                        roiYInput.value = selectedROI.getAttribute("y");
-                        roiWidthInput.value = selectedROI.getAttribute("width");
-                        roiHeightInput.value = selectedROI.getAttribute("height");
+                    selectedROI = event.target;
+                    if (!selectedROI) return;
 
-                        roiInfoModal.classList.remove("hidden");
-                    }
+                    console.log(selectedROI.outerHTML);
+                    console.log("data-name:", selectedROI.getAttribute("data-name"));
+
+                    // ✅ ดึงข้อมูล ROI มาแสดงในโมดัล
+                    roiNameInput.value = selectedROI.getAttribute("data-name") || "ไม่มีชื่อ";
+                    roiXInput.value = selectedROI.getAttribute("x") || "";
+                    roiYInput.value = selectedROI.getAttribute("y") || "";
+                    roiWidthInput.value = selectedROI.getAttribute("width") || "";
+                    roiHeightInput.value = selectedROI.getAttribute("height") || "";
+
+                    // ✅ แสดงโมดัล
+                    roiInfoModal.classList.remove("hidden");
                 }
 
                 document.getElementById("save-roi-info").addEventListener("click", function () {
                     if (selectedROI) {
+                        // ✅ อัปเดตค่าจาก input ไปยัง <rect>
+                        selectedROI.setAttribute("data-name", roiNameInput.value); // อัปเดตชื่อ ROI
                         selectedROI.setAttribute("x", roiXInput.value);
                         selectedROI.setAttribute("y", roiYInput.value);
                         selectedROI.setAttribute("width", roiWidthInput.value);
@@ -471,7 +483,7 @@
 
                         roiInfoModal.classList.add("hidden");
 
-                        // ✅ บันทึกลงฐานข้อมูล
+                        // ✅ ส่งข้อมูลอัปเดตไปยัง backend
                         fetch(`/update_roi_position/`, {
                             method: "POST",
                             headers: {
@@ -480,6 +492,7 @@
                             },
                             body: JSON.stringify({
                                 roi_id: selectedROI.getAttribute("data-id"),
+                                name: roiNameInput.value, // ✅ เพิ่มชื่อ ROI
                                 x_position: roiXInput.value,
                                 y_position: roiYInput.value,
                                 width: roiWidthInput.value,
@@ -493,8 +506,12 @@
                     roiInfoModal.classList.add("hidden");
                 });
 
-                document.getElementById("roi-svg").addEventListener("click", showROIInfo);
+                // ✅ เปลี่ยนจาก roi-svg เป็นการตรวจจับ ROI ที่ถูกคลิกโดยตรง
+                document.querySelectorAll(".draggable-roi").forEach(roi => {
+                    roi.addEventListener("click", showROIInfo);
+                });
             });
+
 
             document.addEventListener("DOMContentLoaded", function () {
                 const roiModal = document.getElementById("roi-modal");

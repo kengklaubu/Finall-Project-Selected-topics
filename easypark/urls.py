@@ -10,7 +10,8 @@ from django.conf.urls.static import static
 
 urlpatterns = [
     path('', views.homepage, name='homepage'),
-    path('sc-parking/', login_required(views.sc_parking), name='sc_parking'),
+    path('sc-parking/', views.sc_parking, name='sc_parking_default'),  # รองรับการเข้าถึงโดยไม่ระบุ location_id
+    path('sc-parking/<int:location_id>/', views.sc_parking, name='sc_parking'),  # ระบุ location_id
     path('api/get_parking_status', views.get_parking_status, name='get_parking_status'),
     path('api/get_spot_details', views.get_spot_details, name='get_spot_details'),
     path('reserve_page/<int:spot_number>/', login_required(views.reserve_page), name='reserve_page'),
@@ -21,9 +22,6 @@ urlpatterns = [
     path('accounts/login/', LoginView.as_view(template_name='easypark/login.html'), name='login'),
     path('logout/', views.logout_view, name='logout'),
     path('success_page/', views.success_page, name='success_page'),
-    
-    #path('locations/', views.locations_page, name='locations'),
-    
     path('reservation_history/', views.reservation_history, name='reservation_history'),
     path('login/', views.login_page, name='login_page'),  
     path('admin_dashboard/', views.admin_dashboard, name='admin_dashboard'),  
@@ -31,10 +29,9 @@ urlpatterns = [
     path('manager_add_location/', views.manager_add_location, name='manager_add_location'),
     path('manager_dashboard/<int:location_id>/add_spot/', views.add_parking_spot, name='add_parking_spot'),
     path('manager/reservation/cancel/<int:reservation_id>/', views.cancel_reservation, name='cancel_reservation'),
-    #path('manager/parking/suspend/<int:spot_id>/', views.suspend_parking_spot, name='suspend_parking_spot'),
     path('get_parking_spots/<int:location_id>/', views.get_parking_spots, name='get_parking_spots'),
     path('suspend_parking_spot/<int:spot_id>/', views.suspend_parking_spot, name='suspend_parking_spot'),
-    path('start-detection/', views.start_detection, name='start_detection'),
+    path('start_detection/', views.start_detection, name='start_detection'),
     path('live/<int:location_id>/',views.stream_video, name='live_video'),
     path('stream/<int:location_id>/',views.video_feed, name='video_feed'),
     path('update-profile/', views.update_profile, name='update_profile'),
@@ -52,19 +49,7 @@ urlpatterns = [
     path("update_roi_position/", views.update_roi_position, name="update_roi_position"),
     path('capture_frame/<int:location_id>/', views.capture_frame, name='capture_frame'),
     path('update_parking_image/<int:location_id>/', views.update_parking_image, name='update_parking_image'),
-
-
-
-
-
-
-
-
-    
-    
-
-
-    
+   
     path('password_reset/', views.password_reset, name='password_reset1221'),
     path('password_reset/', auth_views.PasswordResetView.as_view(), name='password_reset'),
     path('password_reset/done/', auth_views.PasswordResetDoneView.as_view(), name='password_reset_done'),

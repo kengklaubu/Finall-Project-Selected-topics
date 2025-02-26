@@ -257,32 +257,60 @@ def get_camera_url(location_name):
 
 
 import time
+import logging
 from django.http import JsonResponse
+from django.shortcuts import get_object_or_404
 from django.apps import apps
 from .detection_service import start_detection_in_background
 
+logger = logging.getLogger(__name__)  # ใช้ logger แทน print()
+
 def start_detection(request):
-    start_time = time.time()  # บันทึกเวลาที่เริ่ม
-    location = request.GET.get('location')
+    start_time = time.time()
 
-    if not location:
-        return JsonResponse({"error": "No location specified"}, status=400)
+    # รองรับทั้ง `location` และ `location_id`
+    location_param = request.GET.get('location') or request.GET.get('location_id', '').strip()
+    print(f"Received location_id: {location_param}")  # ✅ ตรวจสอบค่า
+    if not location_param:
+        logger.warning("No location provided in request.")
+        return JsonResponse({"status": "error", "message": "Location parameter is required."}, status=400)
 
-    # ตรวจสอบว่ามีโมเดล ParkingLocation หรือไม่
+    logger.debug(f"Received location parameter: {location_param}")
+
+    ParkingLocation = apps.get_model('easypark', 'ParkingLocation')
+
     try:
-        ParkingLocation = apps.get_model('easypark', 'ParkingLocation')
-        if not ParkingLocation.objects.filter(name=location).exists():
-            return JsonResponse({"error": f"Location '{location}' does not exist"}, status=404)
+        try:
+            location_id = int(location_param)
+            location = get_object_or_404(ParkingLocation, id=location_id)
+        except ValueError:
+            location = get_object_or_404(ParkingLocation, name=location_param)
+
+        logger.debug(f"Found location: {location.id}, Camera URL: {location.camera_url}")
+
+        if not location.camera_url:
+            logger.warning(f"Cannot find camera URL for location: {location.id}")
+            return JsonResponse({
+                "status": "error",
+                "message": f"Cannot find camera URL for location: {location.name}"
+            }, status=404)
+        logger.debug(f"Camera URL for {location.name}: {location.camera_url}")
+
+
+        logger.debug(f"Starting detection for location ID: {location.id}")
+        start_detection_in_background(location.id)
+
+
+        end_time = time.time()
+        logger.info(f"start_detection() took {end_time - start_time:.2f} seconds")
+
+        return JsonResponse({"status": "success", "message": f"Detection started for location: {location.name}"})
+
     except Exception as e:
-        return JsonResponse({"error": f"Error retrieving model: {e}"}, status=500)
+        logger.error(f"Error in start_detection: {e}")
+        return JsonResponse({"status": "error", "message": str(e)}, status=500)
 
-    # เรียกฟังก์ชันตรวจจับ
-    start_detection_in_background(location)
 
-    end_time = time.time()  # บันทึกเวลาที่สิ้นสุด
-    print(f"start_detection() took {end_time - start_time:.2f} seconds")
-
-    return JsonResponse({"status": f"Detection started for location: {location}"})
 
 
 
@@ -749,23 +777,37 @@ def cancel_booking(request, booking_id):
 
 
 
-
 from django.contrib.auth.decorators import login_required
-from django.shortcuts import render
+from django.shortcuts import render, get_object_or_404
+from .models import ParkingSpot, ParkingLocation
+
 @login_required
-def sc_parking(request):
+def sc_parking(request, location_id=None):  # เพิ่ม location_id
+    locations = ParkingLocation.objects.all()
+    print("🔍 Location ID received:", location_id)  # ตรวจสอบค่าใน Terminal
+
+    # กำหนดค่า location_id ตามลำดับความสำคัญ (URL > POST > ค่าเริ่มต้น)
+    if location_id is None:
+        location_id = request.POST.get('location') or request.GET.get('location_id')
+
+    # แปลงค่า location_id เป็น int และตรวจสอบว่ามีอยู่จริงหรือไม่
+    try:
+        location_id = int(location_id)
+        selected_location = get_object_or_404(ParkingLocation, pk=location_id)
+    except (ValueError, TypeError, ParkingLocation.DoesNotExist):
+        selected_location = locations.first()  # ใช้ค่าเริ่มต้นหากไม่มีค่า
+
+    # ดึงข้อมูลที่จอดรถของสถานที่ที่เลือก
+    spots = ParkingSpot.objects.filter(location=selected_location).select_related('location')
+
     context = {
-        'spots': ParkingSpot.objects.filter(location__id = 1),
-        'location': 'ตึกวิจัย',
-        'locations': ParkingLocation.objects.all(),
+        'spots': spots,
+        'location': selected_location,
+        'locations': locations,
     }
-    if request.method == 'POST':
-        location = request.POST.get('location')
-        location = ParkingLocation.objects.get(pk=int(location))
-        context['location'] = location
-        context['spots'] = ParkingSpot.objects.filter(location = location)
-    
     return render(request, 'easypark/sc_parking.html', context)
+
+
 
 
 from django.shortcuts import render, redirect, get_object_or_404
