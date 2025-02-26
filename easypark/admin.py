@@ -45,8 +45,8 @@ class BookingAdmin(admin.ModelAdmin):
 
 @admin.register(Reservation)
 class ReservationAdmin(admin.ModelAdmin):
-    list_display = ('user', 'parking_spot', 'location', 'reservation_date', 'completed_at')
-    search_fields = ('user__username', 'parking_spot__spot_number', 'location__name')
+    list_display = ('user', 'parking_spot', 'location', 'reservation_date', 'completed_at', 'reservation_start_time', 'reservation_end_time')
+    search_fields = ('user__username', 'parking_spot__spot_number', 'location__name', 'reservation_date')
     list_filter = ('reservation_date', 'completed_at')
     
 

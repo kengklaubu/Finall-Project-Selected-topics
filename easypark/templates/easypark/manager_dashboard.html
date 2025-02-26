@@ -7,11 +7,20 @@
     <title>Manager Dashboard | Easy Parking</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <style>
         body {
             font-family: 'Kanit', sans-serif;
         }
+
+        /* #roi-background {
+            width: 100%;
+            height: auto;
+            max-width: 1920px;
+            max-height: 1080px;
+        } */
     </style>
 </head>
 
@@ -77,7 +86,7 @@
                     <td class="p-3">{{ booking.reservation_date }}</td>
                     <td class="p-3">{{ booking.parking_spot.location.name }}</td>
                     <td class="p-3">
-                        <a href="{% url 'cancel_reservation' booking.id %}" class="text-red-500 hover:underline">❌
+                        <a href="{% url 'cancel_booking' booking.id %}" class="text-red-500 hover:underline">❌
                             ยกเลิก</a>
                     </td>
                 </tr>
@@ -107,17 +116,20 @@
             <div class="bg-white p-6 rounded-lg shadow-lg w-[600px]">
                 <h2 class="text-xl font-bold mb-4 text-gray-800">📌 ขยับกรอบ ROIs</h2>
                 <div class="border border-gray-400 p-4 relative">
-                    <svg id="roi-svg" width="500" height="300" class="border border-gray-300">
-                        <!-- ✅ ใช้ภาพจากกล้องเป็นพื้นหลัง -->
-                        <image id="roi-background" width="500" height="300" href="" />
-
+                    <p id="image-size">ขนาดภาพ: กำลังโหลด...</p>
+                    <svg id="roi-svg" viewBox="0 0 600 400" preserveAspectRatio="xMidYMid meet"
+                        class="border border-gray-300 w-full h-auto">
+                        <image id="roi-background" width="100%" height="100%" href="" />
                         {% for roi in rois %}
                         <rect id="roi-{{ roi.id }}" class="draggable-roi" x="{{ roi.x_position }}"
                             y="{{ roi.y_position }}" width="{{ roi.width }}" height="{{ roi.height }}"
-                            fill="rgba(0, 0, 255, 0.5)" stroke="blue" stroke-width="2" data-id="{{ roi.id }}"></rect>
+                            fill="rgba(0, 0, 255, 0.5)" stroke="blue" stroke-width="2" data-id="{{ roi.id }}"
+                            data-name="{{ roi.name }}"></rect>
+
                         {% endfor %}
                     </svg>
                 </div>
+
                 <button id="close-roi-modal"
                     class="mt-4 w-full bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600">
                     ❌ ปิด
@@ -189,6 +201,42 @@
                 </button>
             </div>
         </div>
+
+        <!-- ปุ่มแก้ไขรูปภาพ -->
+        <button id="edit-image-btn"
+            class="mt-4 bg-yellow-500 text-white px-4 py-2 rounded-lg hover:bg-yellow-600 transition">
+            ✏️ แก้ไขรูปภาพ
+        </button>
+
+        <!-- Modal สำหรับอัปโหลดรูปใหม่ -->
+        <div id="edit-image-modal"
+            class="fixed inset-0 bg-gray-800 bg-opacity-75 flex items-center justify-center hidden">
+            <div class="bg-white rounded-lg p-6 w-full max-w-lg shadow-lg">
+                <h2 class="text-xl font-bold mb-4">🖼️ แก้ไขรูปภาพที่จอดรถ</h2>
+
+                <!-- แสดงรูปภาพปัจจุบัน -->
+                <div class="mb-4">
+                    <p class="text-gray-700">📷 รูปภาพปัจจุบัน:</p>
+                    <img id="current-image" src="{{ location.image.url }}" alt="Current Image"
+                        class="rounded-lg shadow-md w-full">
+                </div>
+
+                <!-- อัปโหลดรูปภาพใหม่ -->
+                <div class="mb-4">
+                    <label for="new-image" class="block text-gray-700 font-semibold">📤 เลือกรูปภาพใหม่:</label>
+                    <input type="file" id="new-image" accept="image/*" class="w-full px-3 py-2 border rounded-lg">
+                </div>
+
+                <!-- ปุ่มบันทึกและปิด Modal -->
+                <div class="flex justify-end space-x-2">
+                    <button id="cancel-btn" class="bg-gray-400 text-white px-4 py-2 rounded-lg hover:bg-gray-500">❌
+                        ยกเลิก</button>
+                    <button id="save-image-btn" class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600">💾
+                        บันทึก</button>
+                </div>
+            </div>
+        </div>
+
 
 
 
@@ -265,8 +313,6 @@
             </div>
         </table>
 
-
-
         <!-- ✅ Live Camera Feed -->
         <div class=" container mx-auto mt-8 bg-white p-6 rounded-lg shadow-lg max-w-3xl">
             <h2 class="text-2xl font-bold text-gray-800 mb-4">📷 Live Camera Feed</h2>
@@ -278,8 +324,124 @@
             </div>
         </div>
 
+
+
+
+
         <!-- ✅ JavaScript -->
         <script>
+
+
+            // เปิด Modal
+            document.getElementById('edit-image-btn').addEventListener('click', () => {
+                document.getElementById('edit-image-modal').classList.remove('hidden');
+            });
+
+            // ปิด Modal
+            document.getElementById('cancel-btn').addEventListener('click', () => {
+                document.getElementById('edit-image-modal').classList.add('hidden');
+            });
+
+            // อัปโหลดรูปภาพใหม่
+            document.getElementById('save-image-btn').addEventListener('click', () => {
+                const fileInput = document.getElementById('new-image');
+                const file = fileInput.files[0];
+
+                if (!file) {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'กรุณาเลือกรูปภาพ',
+                        text: 'คุณต้องเลือกรูปภาพก่อนทำการอัปโหลด!',
+                    });
+                    return;
+                }
+
+                // 🟢 ตรวจสอบประเภทไฟล์
+                const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
+                if (!allowedTypes.includes(file.type)) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'ไฟล์ไม่ถูกต้อง!',
+                        text: 'กรุณาอัปโหลดไฟล์รูปภาพเท่านั้น (JPEG, JPG, PNG, GIF)',
+                    });
+                    fileInput.value = '';  // ล้างค่าไฟล์
+                    return;
+                }
+
+                const formData = new FormData();
+                formData.append('image', file);
+                formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');  // สำหรับป้องกัน CSRF
+
+                fetch("{% url 'update_parking_image' location.id %}", {
+                    method: 'POST',
+                    body: formData
+                }).then(response => {
+                    if (response.ok) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'สำเร็จ!',
+                            text: '✅ รูปภาพอัปโหลดเรียบร้อยแล้ว!',
+                        }).then(() => {
+                            location.reload();  // รีเฟรชหน้าเพื่อแสดงรูปใหม่
+                        });
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'เกิดข้อผิดพลาด!',
+                            text: '❌ ไม่สามารถอัปโหลดได้!',
+                        });
+                    }
+                }).catch(error => {
+                    console.error('Error:', error);
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'เกิดข้อผิดพลาด!',
+                        text: '❌ มีบางอย่างผิดพลาด!',
+                    });
+                });
+            });
+
+
+
+
+
+
+
+
+
+            function adjustROIs() {
+                const svg = document.getElementById('roi-svg');
+                const image = document.getElementById('roi-background');
+                const originalWidth = image_width ?? 1920;
+                const originalHeight = image_height ?? 1080;
+
+
+                const currentWidth = image.clientWidth;
+                const currentHeight = image.clientHeight;
+
+                document.querySelectorAll('.draggable-roi').forEach(rect => {
+                    const originalX = parseFloat(rect.getAttribute('data-original-x'));
+                    const originalY = parseFloat(rect.getAttribute('data-original-y'));
+                    const originalWidthRect = parseFloat(rect.getAttribute('data-original-width'));
+                    const originalHeightRect = parseFloat(rect.getAttribute('data-original-height'));
+
+                    // ปรับตำแหน่งและขนาดตามอัตราส่วน
+                    rect.setAttribute('x', (originalX * currentWidth) / originalWidth);
+                    rect.setAttribute('y', (originalY * currentHeight) / originalHeight);
+                    rect.setAttribute('width', (originalWidthRect * currentWidth) / originalWidth);
+                    rect.setAttribute('height', (originalHeightRect * currentHeight) / originalHeight);
+                });
+            }
+
+            window.addEventListener('load', adjustROIs);
+            window.addEventListener('resize', adjustROIs);
+
+
+
+            // เรียกใช้เมื่อโหลดหน้า
+            window.addEventListener('load', adjustROIs);
+            window.addEventListener('resize', adjustROIs);
+
             document.addEventListener("DOMContentLoaded", function () {
                 const roiInfoModal = document.getElementById("roi-info-modal");
                 const roiNameInput = document.getElementById("roi-name");
@@ -290,22 +452,30 @@
                 let selectedROI = null;
 
                 function showROIInfo(event) {
-                    if (event.target.classList.contains("draggable-roi")) {
-                        selectedROI = event.target;
+                    // ดักจับคลิกเฉพาะที่ ROI เท่านั้น
+                    if (!event.target.classList.contains("draggable-roi")) return;
 
-                        // ✅ ดึงค่า ROIs
-                        roiNameInput.value = selectedROI.getAttribute("data-name");
-                        roiXInput.value = selectedROI.getAttribute("x");
-                        roiYInput.value = selectedROI.getAttribute("y");
-                        roiWidthInput.value = selectedROI.getAttribute("width");
-                        roiHeightInput.value = selectedROI.getAttribute("height");
+                    selectedROI = event.target;
+                    if (!selectedROI) return;
 
-                        roiInfoModal.classList.remove("hidden");
-                    }
+                    console.log(selectedROI.outerHTML);
+                    console.log("data-name:", selectedROI.getAttribute("data-name"));
+
+                    // ✅ ดึงข้อมูล ROI มาแสดงในโมดัล
+                    roiNameInput.value = selectedROI.getAttribute("data-name") || "ไม่มีชื่อ";
+                    roiXInput.value = selectedROI.getAttribute("x") || "";
+                    roiYInput.value = selectedROI.getAttribute("y") || "";
+                    roiWidthInput.value = selectedROI.getAttribute("width") || "";
+                    roiHeightInput.value = selectedROI.getAttribute("height") || "";
+
+                    // ✅ แสดงโมดัล
+                    roiInfoModal.classList.remove("hidden");
                 }
 
                 document.getElementById("save-roi-info").addEventListener("click", function () {
                     if (selectedROI) {
+                        // ✅ อัปเดตค่าจาก input ไปยัง <rect>
+                        selectedROI.setAttribute("data-name", roiNameInput.value); // อัปเดตชื่อ ROI
                         selectedROI.setAttribute("x", roiXInput.value);
                         selectedROI.setAttribute("y", roiYInput.value);
                         selectedROI.setAttribute("width", roiWidthInput.value);
@@ -313,7 +483,7 @@
 
                         roiInfoModal.classList.add("hidden");
 
-                        // ✅ บันทึกลงฐานข้อมูล
+                        // ✅ ส่งข้อมูลอัปเดตไปยัง backend
                         fetch(`/update_roi_position/`, {
                             method: "POST",
                             headers: {
@@ -322,6 +492,7 @@
                             },
                             body: JSON.stringify({
                                 roi_id: selectedROI.getAttribute("data-id"),
+                                name: roiNameInput.value, // ✅ เพิ่มชื่อ ROI
                                 x_position: roiXInput.value,
                                 y_position: roiYInput.value,
                                 width: roiWidthInput.value,
@@ -335,32 +506,53 @@
                     roiInfoModal.classList.add("hidden");
                 });
 
-                document.getElementById("roi-svg").addEventListener("click", showROIInfo);
+                // ✅ เปลี่ยนจาก roi-svg เป็นการตรวจจับ ROI ที่ถูกคลิกโดยตรง
+                document.querySelectorAll(".draggable-roi").forEach(roi => {
+                    roi.addEventListener("click", showROIInfo);
+                });
             });
+
 
             document.addEventListener("DOMContentLoaded", function () {
                 const roiModal = document.getElementById("roi-modal");
                 const roiSvg = document.getElementById("roi-svg");
                 const roiBackground = document.getElementById("roi-background");
+                const imageSizeDisplay = document.getElementById("image-size");
 
                 document.getElementById("edit-roi-btn").addEventListener("click", function () {
-                    // ✅ เรียก API แคปภาพ
                     fetch(`/capture_frame/{{ location.id }}/`)
                         .then(response => response.json())
                         .then(data => {
                             if (data.success) {
-                                roiBackground.setAttribute("href", data.image_url);  // ✅ ตั้งค่าภาพพื้นหลัง
-                                roiModal.classList.remove("hidden");
+                                const img = new Image();
+                                img.src = data.image_url;
+
+                                // ✅ เมื่อโหลดรูปสำเร็จ ให้ดึงขนาดรูป
+                                img.onload = function () {
+                                    const width = img.naturalWidth;
+                                    const height = img.naturalHeight;
+                                    roiBackground.setAttribute("href", data.image_url);
+                                    roiSvg.setAttribute("viewBox", `0 0 ${width} ${height}`);
+                                    imageSizeDisplay.textContent = `ขนาดภาพ: ${width} x ${height}`;
+                                    roiModal.classList.remove("hidden");
+                                };
+
+                                img.onerror = function () {
+                                    console.error("ไม่สามารถโหลดรูปภาพได้");
+                                };
                             } else {
                                 console.error("Error capturing frame:", data.error);
                             }
-                        });
+                        })
+                        .catch(error => console.error("Fetch error:", error));
                 });
 
                 document.getElementById("close-roi-modal").addEventListener("click", function () {
                     roiModal.classList.add("hidden");
                 });
             });
+
+
 
             document.addEventListener("DOMContentLoaded", function () {
                 const svgROI = document.getElementById("roi-svg");
@@ -744,7 +936,7 @@
                     }
                 });
             });
-            setInterval(fetchParkingStatus, 1000);
+            //setInterval(fetchParkingStatus, 1000);
         </script>
 
 

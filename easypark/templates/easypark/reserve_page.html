@@ -15,71 +15,73 @@
     </style>
 </head>
 
-<body class="bg-gray-100">
+<body class="bg-gray-100 min-h-screen flex flex-col">
 
     {% load static %}
 
-    <!-- Header Section -->
+    <!-- 🌟 Header Section -->
     <header class="bg-gray-800 text-white p-4 shadow-md">
         <div class="container mx-auto flex justify-between items-center">
-            <!-- Logo -->
             <div class="flex items-center">
                 <img src="{% static 'image/logo.png' %}" alt="Easy Parking Logo" class="h-12 w-12 mr-3">
                 <h1 class="text-2xl font-semibold">Easy Parking</h1>
             </div>
-
-            <!-- Navigation & User -->
             <div class="flex items-center space-x-6">
-                <a href="{% url 'homepage' %}" class="hover:text-gray-300 transition">หน้าหลัก</a>
+                <a href="{% url 'homepage' %}" class="hover:text-gray-300 transition">🏠 หน้าหลัก</a>
                 <img src="{% static 'easypark/image/user_1.png' %}" alt="User Icon" class="h-10 w-10 rounded-full">
             </div>
         </div>
     </header>
 
-    <!-- Main Content Section -->
-    <main class="container mx-auto mt-10 p-8 bg-white shadow-lg rounded-lg">
-        <h2 class="text-3xl font-bold mb-6 text-center text-gray-800">ยืนยันการจองของคุณ</h2>
+    <!-- 🌟 Main Content Section -->
+    <main class="container mx-auto mt-10 p-8 bg-white shadow-lg rounded-lg max-w-3xl">
+        <h2 class="text-3xl font-bold mb-6 text-center text-gray-800">🚗 ยืนยันการจองของคุณ</h2>
 
-        <div class="bg-gray-50 p-6 rounded-lg shadow-sm border border-gray-200">
-            <p class="text-lg"><strong>คุณเลือก:</strong> <span class="text-blue-500 font-semibold">ช่องจอดหมายเลข {{ spot.spot_number }}</span></p>
-            <p class="text-lg"><strong>สถานที่:</strong> <span class="text-gray-700">{{ spot.location }}</span></p>
-            <p class="text-lg"><strong>สถานะ:</strong> 
+        <!-- 🟢 Booking Details -->
+        <div class="bg-gray-50 p-6 rounded-lg shadow-sm border border-gray-200 mb-8">
+            <h3 class="text-xl font-semibold mb-4 text-gray-700">📋 รายละเอียดการจอง</h3>
+            <p class="text-lg"><strong>🔖 คุณเลือก:</strong> <span class="text-blue-500 font-semibold">ช่องจอดหมายเลข
+                    {{spot_number }}</span></p>
+            <p class="text-lg"><strong>📍 สถานที่:</strong> <span class="text-gray-700">{{ spot.location }}</span></p>
+            <p class="text-lg"><strong>🚦 สถานะ:</strong>
                 {% if spot.is_available %}
-                    <span class="text-green-500 font-semibold">ว่าง</span>
+                <span class="text-green-500 font-semibold">ว่าง</span>
                 {% else %}
-                    <span class="text-red-500 font-semibold">มีคนจองแล้ว</span>
+                <span class="text-red-500 font-semibold">มีคนจองแล้ว</span>
                 {% endif %}
             </p>
         </div>
 
-        <!-- Payment Methods -->
-        <div class="grid grid-cols-2 gap-8 my-8">
-            <div class="flex flex-col items-center">
-                <img src="{% static 'image/thai_qr_payment.png' %}" alt="Thai QR Payment" class="h-36 w-36 mb-3">
-                <p class="font-bold text-lg text-gray-700">Thai QR Payment</p>
-            </div>
-            <div class="flex flex-col items-center">
-                <img src="{% static 'image/true_money_payment.png' %}" alt="TrueMoney Payment" class="h-36 w-36 mb-3">
-                <p class="font-bold text-lg text-gray-700">TrueMoney</p>
-            </div>
-        </div>
-
-        <!-- Booking Form -->
+        <!-- 📝 Booking Form -->
         <div class="bg-white p-6 rounded-lg shadow-md border border-gray-200">
-            <form action="{% url 'confirm_reservation' %}" method="post">
+            <h3 class="text-xl font-semibold mb-4 text-gray-700">✍️ ละเอียดการจอง</h3>
+            <form method="post">
                 {% csrf_token %}
                 <input type="hidden" name="spot_number" value="{{ spot.spot_number }}">
-                <input type="hidden" name="location" value="{{ spot.location }}">
 
                 <div class="mb-4">
-                    <label for="name" class="block text-gray-700 font-bold mb-2">ชื่อผู้จอง:</label>
-                    <input type="text" id="name" name="name" value="{{ user.username }}" readonly
-                        class="w-full px-4 py-2 border rounded-md bg-gray-200 text-gray-800">
+                    <label for="user-name" class="block text-lg font-medium text-gray-700">ชื่อผู้จอง:</label>
+                    <p class="mt-1 w-full px-4 py-2 border rounded-lg">{{ user.first_name }}</p>
                 </div>
 
-                <div class="mb-4 flex items-center">
-                    <input type="checkbox" id="terms" name="terms" required class="mr-2">
-                    <label for="terms" class="text-gray-600">ฉันยอมรับข้อตกลงในการจองที่จอดรถ</label>
+                <div class="mb-4">
+                    <label for="start_time" class="block text-lg font-medium text-gray-700">เวลาเริ่มจอง:</label>
+                    <div class="flex items-center space-x-2">
+                        <input type="time" id="start_time" name="start_time" value="08:00" required
+                            class="mt-1 w-full px-4 py-2 border rounded-lg">
+                        <button type="button" onclick="setCurrentTime('start_time')"
+                            class="mt-1 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600">เวลาตอนนี้</button>
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <label for="end_time" class="block text-lg font-medium text-gray-700">เวลาสิ้นสุด:</label>
+                    <div class="flex items-center space-x-2">
+                        <input type="time" id="end_time" name="end_time" value="12:00" required
+                            class="mt-1 w-full px-4 py-2 border rounded-lg">
+                        <button type="button" onclick="setCurrentTime('end_time')"
+                            class="mt-1 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600">เวลาตอนนี้</button>
+                    </div>
                 </div>
 
                 <button type="submit"
@@ -89,11 +91,25 @@
             </form>
         </div>
 
-        <!-- ปุ่มย้อนกลับ -->
+
+
+        <!-- 🔙 ปุ่มย้อนกลับ -->
         <div class="mt-6 text-center">
             <a href="{% url 'homepage' %}" class="text-blue-600 hover:underline font-semibold">🔙 กลับไปหน้าหลัก</a>
         </div>
     </main>
+
+    <!-- 🌟 Footer Section -->
+    <footer class="bg-gray-800 text-white text-center p-4 mt-auto">
+        &copy; 2025 Easy Parking. All rights reserved.
+    </footer>
+    <script>
+        function setCurrentTime(inputId) {
+            const now = new Date();
+            const currentTime = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+            document.getElementById(inputId).value = currentTime;
+        }
+    </script>
 
 </body>
 

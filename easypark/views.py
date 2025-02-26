@@ -257,28 +257,61 @@ def get_camera_url(location_name):
 
 
 import time
+import logging
 from django.http import JsonResponse
+from django.shortcuts import get_object_or_404
 from django.apps import apps
 from .detection_service import start_detection_in_background
 
+logger = logging.getLogger(__name__)  # ใช้ logger แทน print()
+
 def start_detection(request):
-    start_time = time.time()  # บันทึกเวลาที่เริ่ม
-    location = request.GET.get('location')
-    
-    if not location:
-        return JsonResponse({"error": "No location specified"}, status=400)
+    start_time = time.time()
 
-    app_config = apps.get_app_config('easypark')
-    model = app_config.model  
-    if model is None:
-        return JsonResponse({"error": "Model not loaded"}, status=500)
+    # รองรับทั้ง `location` และ `location_id`
+    location_param = request.GET.get('location') or request.GET.get('location_id', '').strip()
+    print(f"Received location_id: {location_param}")  # ✅ ตรวจสอบค่า
+    if not location_param:
+        logger.warning("No location provided in request.")
+        return JsonResponse({"status": "error", "message": "Location parameter is required."}, status=400)
 
-    start_detection_in_background(location, model)
+    logger.debug(f"Received location parameter: {location_param}")
 
-    end_time = time.time()  # บันทึกเวลาที่สิ้นสุด
-    print(f"start_detection() took {end_time - start_time:.2f} seconds")
+    ParkingLocation = apps.get_model('easypark', 'ParkingLocation')
 
-    return JsonResponse({"status": f"Detection started for location: {location}"})
+    try:
+        try:
+            location_id = int(location_param)
+            location = get_object_or_404(ParkingLocation, id=location_id)
+        except ValueError:
+            location = get_object_or_404(ParkingLocation, name=location_param)
+
+        logger.debug(f"Found location: {location.id}, Camera URL: {location.camera_url}")
+
+        if not location.camera_url:
+            logger.warning(f"Cannot find camera URL for location: {location.id}")
+            return JsonResponse({
+                "status": "error",
+                "message": f"Cannot find camera URL for location: {location.name}"
+            }, status=404)
+        logger.debug(f"Camera URL for {location.name}: {location.camera_url}")
+
+
+        logger.debug(f"Starting detection for location ID: {location.id}")
+        start_detection_in_background(location.id)
+
+
+        end_time = time.time()
+        logger.info(f"start_detection() took {end_time - start_time:.2f} seconds")
+
+        return JsonResponse({"status": "success", "message": f"Detection started for location: {location.name}"})
+
+    except Exception as e:
+        logger.error(f"Error in start_detection: {e}")
+        return JsonResponse({"status": "error", "message": str(e)}, status=500)
+
+
+
 
 
 
@@ -625,86 +658,119 @@ def parking_detail(request, spot_id):
 
 
 
-from django.shortcuts import render, redirect
-from django.contrib.auth.decorators import login_required
-from .models import ParkingSpot
-@login_required
-def reserve_parking_spot(request, spot_id):
-    spot = ParkingSpot.objects.get(id=spot_id)
+# from django.shortcuts import render, redirect
+# from django.contrib.auth.decorators import login_required
+# from .models import ParkingSpot
+# @login_required
+# def reserve_parking_spot(request, spot_id):
+#     spot = ParkingSpot.objects.get(id=spot_id)
 
-    if spot.is_available:
-        spot.is_available = False
-        spot.reserved_by = request.user  # เก็บข้อมูลผู้ใช้งานที่ทำการจอง
-        spot.save()
+#     if spot.is_available:
+#         spot.is_available = False
+#         spot.reserved_by = request.user  # เก็บข้อมูลผู้ใช้งานที่ทำการจอง
+#         spot.save()
 
-        return redirect('parking_detail')  # หลังจากจองเสร็จให้ไปยังหน้า parking_detail
-    else:
-        return render(request, 'error_page.html', {'message': 'ช่องจอดนี้ถูกจองแล้ว'})
+#         return redirect('parking_detail')  # หลังจากจองเสร็จให้ไปยังหน้า parking_detail
+#     else:
+#         return render(request, 'error_page.html', {'message': 'ช่องจอดนี้ถูกจองแล้ว'})
     
 
 
 
-from django.shortcuts import render, redirect
-from django.http import JsonResponse
-from .models import ParkingSpot
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
+from django.utils import timezone
+from .models import ParkingSpot, Booking, ParkingLocation
 
 @login_required
 def reserve_page(request, spot_number):
-    location_id = request.GET.get('location_id')  # รับ location_id จาก URL
-    print(f"Received spot_number: {spot_number}, location_id: {location_id}")
+    
+    location_id = request.GET.get('location_id')  # รับ location_id จาก query string
 
     try:
-        # ดึงข้อมูลจากฐานข้อมูล
-        if location_id:
-            spot = ParkingSpot.objects.get(spot_number=spot_number, location_id=location_id)
-        else:
-            spot = ParkingSpot.objects.get(spot_number=spot_number)
-
-        print(f"Spot found: {spot}")
-
-        context = {
-            'spot': spot,  # ส่งข้อมูล spot ไปที่ template
-        }
-        return render(request, 'easypark/reserve_page.html', context)
+        parking_spot = ParkingSpot.objects.get(spot_number=spot_number, location_id=location_id)
     except ParkingSpot.DoesNotExist:
-        print("No spot found")
-        return render(request, 'easypark/error.html', {'message': 'ไม่พบที่จอดรถที่คุณเลือก'})
+        return render(request, 'easypark/error.html', {'message': 'ไม่พบที่จอดนี้ในสถานที่นี้'})
     except ParkingSpot.MultipleObjectsReturned:
-        print("Multiple spots found")
-        return render(request, 'easypark/error.html', {'message': 'พบข้อมูลซ้ำในระบบ โปรดติดต่อผู้ดูแลระบบ'})
+        return render(request, 'easypark/error.html', {'message': 'มีที่จอดหลายรายการในสถานที่นี้ กรุณาติดต่อผู้ดูแล'})
+    print(f"Spot Number: {parking_spot.spot_number}")  # ตรวจสอบค่าที่ดึงมาได้
 
-
-
-
-
-
-# ฟังก์ชันสำหรับยืนยันการจอง
-from django.shortcuts import render, redirect
-from django.contrib.auth.decorators import login_required
-@login_required
-def confirm_reservation(request):
     if request.method == 'POST':
-        print(request.POST)  # ตรวจสอบค่าที่ถูกส่งมาใน Terminal
-        
-        spot_number = request.POST.get('spot_number')
-        location = request.POST.get('location')
+        start_time = request.POST.get('start_time', '08:00:00')
+        end_time = request.POST.get('end_time', '12:00:00')
 
-        context = {
-            'spot_number': spot_number,
-            'location': location,
-            'reservation_time': '08:00 - 08:15',
-        }
-        return render(request, 'easypark/reservation_confirmation.html', context)
-    return redirect('homepage')
+        if not parking_spot.is_available:
+            return render(request, 'easypark/error.html', {'message': 'ที่จอดนี้ถูกจองแล้ว'})
+
+        Booking.objects.create(
+            user=request.user,
+            parking_spot=parking_spot,
+            location=parking_spot.location,
+            reservation_date=timezone.now().date(),
+            reservation_start_time=start_time,
+            reservation_end_time=end_time,
+            status='active'
+        )
+
+        parking_spot.is_available = False
+        parking_spot.reserved_by = request.user
+        parking_spot.save()
+
+        return redirect('profile')
+
+    return render(request, 'easypark/reserve_page.html', {
+    'spot': parking_spot,
+    'spot_number': parking_spot.spot_number,
+})
+
+
+def success_page(request):
+    return render(request, 'easypark/success_page.html')
 
 
 
 
-from django.shortcuts import redirect
-def cancel_reservation(request):
-    # Logic สำหรับการยกเลิกการจอง
-    return redirect('homepage')
+
+from django.shortcuts import get_object_or_404, redirect
+from django.contrib import messages
+from .models import Booking, ParkingLocation
+from django.utils import timezone
+
+@login_required
+def cancel_booking(request, booking_id):
+    print(f"Booking ID: {booking_id}")
+    booking = get_object_or_404(Booking, id=booking_id)
+
+    # ตรวจสอบสิทธิ์การยกเลิก
+    if booking.user == request.user:  # ผู้จอง
+        role = 'user'
+    elif request.user.is_manager() and booking.parking_spot.location.owner == request.user:  # Manager
+        role = 'manager'
+    else:
+        messages.error(request, "⚠️ คุณไม่มีสิทธิ์ยกเลิกการจองนี้")
+        return redirect('manager_dashboard', location_id=booking.parking_spot.location.id)
+
+    # ยกเลิกการจอง
+    if booking.status == 'active':
+        booking.status = 'cancelled'
+        booking.cancelled_at = timezone.now()
+        booking.parking_spot.is_available = True
+        booking.parking_spot.reserved_by = None
+        booking.parking_spot.save()
+        booking.save()
+
+        messages.success(request, f"🚫 {role.capitalize()} ยกเลิกการจองสำเร็จ สำหรับที่จอด #{booking.parking_spot.spot_number}")
+    else:
+        messages.warning(request, "❌ ไม่สามารถยกเลิกได้ เพราะการจองนี้ไม่อยู่ในสถานะ Active")
+
+    # กลับไปยังหน้าเดิมตาม role
+    if role == 'manager':
+        return redirect('manager_dashboard', location_id=booking.parking_spot.location.id)
+    else:
+        return redirect('profile')  # หน้าแดชบอร์ดของผู้ใช้ทั่วไป
+
+
+
 
 
 
@@ -712,21 +778,36 @@ def cancel_reservation(request):
 
 
 from django.contrib.auth.decorators import login_required
-from django.shortcuts import render
+from django.shortcuts import render, get_object_or_404
+from .models import ParkingSpot, ParkingLocation
+
 @login_required
-def sc_parking(request):
+def sc_parking(request, location_id=None):  # เพิ่ม location_id
+    locations = ParkingLocation.objects.all()
+    print("🔍 Location ID received:", location_id)  # ตรวจสอบค่าใน Terminal
+
+    # กำหนดค่า location_id ตามลำดับความสำคัญ (URL > POST > ค่าเริ่มต้น)
+    if location_id is None:
+        location_id = request.POST.get('location') or request.GET.get('location_id')
+
+    # แปลงค่า location_id เป็น int และตรวจสอบว่ามีอยู่จริงหรือไม่
+    try:
+        location_id = int(location_id)
+        selected_location = get_object_or_404(ParkingLocation, pk=location_id)
+    except (ValueError, TypeError, ParkingLocation.DoesNotExist):
+        selected_location = locations.first()  # ใช้ค่าเริ่มต้นหากไม่มีค่า
+
+    # ดึงข้อมูลที่จอดรถของสถานที่ที่เลือก
+    spots = ParkingSpot.objects.filter(location=selected_location).select_related('location')
+
     context = {
-        'spots': ParkingSpot.objects.filter(location__id = 1),
-        'location': 'ตึกวิจัย',
-        'locations': ParkingLocation.objects.all(),
+        'spots': spots,
+        'location': selected_location,
+        'locations': locations,
     }
-    if request.method == 'POST':
-        location = request.POST.get('location')
-        location = ParkingLocation.objects.get(pk=int(location))
-        context['location'] = location
-        context['spots'] = ParkingSpot.objects.filter(location = location)
-    
     return render(request, 'easypark/sc_parking.html', context)
+
+
 
 
 from django.shortcuts import render, redirect, get_object_or_404
@@ -883,8 +964,8 @@ User = get_user_model()
 def edit_location(request, location_id):
     location = get_object_or_404(ParkingLocation, id=location_id)
     if request.method == "POST":
-        print("📥 ข้อมูลที่รับมา:", request.POST)  # ✅ Debug
-        print("📷 ไฟล์ที่แนบมา:", request.FILES)
+        # print("📥 ข้อมูลที่รับมา:", request.POST)  # ✅ Debug
+        # print("📷 ไฟล์ที่แนบมา:", request.FILES)
 
         try:
             location.name = request.POST.get("name")
@@ -957,8 +1038,8 @@ def admin_add_location(request):
     """ให้ Admin เพิ่มสถานที่ โดยเลือกเจ้าของสถานที่เอง"""
     if request.method == "POST":
         try:
-            print("📥 ข้อมูลที่รับมา:", request.POST)
-            print("📷 ไฟล์ที่แนบมา:", request.FILES)
+            # print("📥 ข้อมูลที่รับมา:", request.POST)
+            # print("📷 ไฟล์ที่แนบมา:", request.FILES)
 
             name = request.POST.get("name")
             if not name:
@@ -1026,8 +1107,8 @@ def admin_edit_location(request, location_id):
     location = get_object_or_404(ParkingLocation, id=location_id)
 
     if request.method == "POST":
-        print("📥 ข้อมูลที่รับมา:", request.POST)  # ✅ Debug ดูค่าที่ถูกส่ง
-        print("📷 ไฟล์ที่แนบมา:", request.FILES)
+        # print("📥 ข้อมูลที่รับมา:", request.POST)  # ✅ Debug ดูค่าที่ถูกส่ง
+        # print("📷 ไฟล์ที่แนบมา:", request.FILES)
 
         form = AdminLocationForm(request.POST, request.FILES, instance=location)
         if form.is_valid():
@@ -1109,10 +1190,13 @@ def capture_frame(request, location_id):
         if not success:
             return JsonResponse({'success': False, 'error': 'ไม่สามารถจับภาพจากกล้องได้'}, status=500)
 
+        # ✅ ดึงขนาดภาพ
+        height, width, _ = frame.shape  # เพิ่มตรงนี้เพื่อหาขนาดรูป
+
         # ✅ สร้างโฟลเดอร์ `media/roi_snapshots/` ถ้ายังไม่มี
         roi_dir = os.path.join(settings.MEDIA_ROOT, 'roi_snapshots')
         if not os.path.exists(roi_dir):
-            os.makedirs(roi_dir)  # ✅ สร้างโฟลเดอร์ถ้ายังไม่มี
+            os.makedirs(roi_dir)
 
         # ✅ กำหนด path ของไฟล์ภาพ
         image_path = f'roi_snapshots/location_{location_id}.jpg'
@@ -1124,7 +1208,13 @@ def capture_frame(request, location_id):
         if not save_success:
             return JsonResponse({'success': False, 'error': 'บันทึกไฟล์ภาพไม่สำเร็จ'}, status=500)
 
-        return JsonResponse({'success': True, 'image_url': settings.MEDIA_URL + image_path})
+        # ✅ เพิ่มการคืนค่าขนาดภาพ
+        return JsonResponse({
+            'success': True,
+            'image_url': settings.MEDIA_URL + image_path,
+            'image_width': width,
+            'image_height': height
+        })
 
     except ParkingLocation.DoesNotExist:
         return JsonResponse({'success': False, 'error': 'ไม่พบสถานที่'}, status=404)
@@ -1133,6 +1223,35 @@ def capture_frame(request, location_id):
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
 
+
+
+from PIL import Image
+
+def roi_modal_view(request):
+    image_path = "roi_snapshots/location_{location_id}"
+    with Image.open(image_path) as img:
+        image_width, image_height = img.size
+
+    context = {
+        "rois": ROI.objects.all(),
+        "image_width": image_width,
+        "image_height": image_height
+    }
+    return render(request, 'easypark/manager_dashboard.html', context)
+
+
+
+from django.shortcuts import get_object_or_404
+from django.http import JsonResponse
+from .models import ParkingLocation
+
+def update_parking_image(request, location_id):
+    if request.method == 'POST' and request.FILES.get('image'):
+        location = get_object_or_404(ParkingLocation, id=location_id)
+        location.image = request.FILES['image']
+        location.save()
+        return JsonResponse({'message': 'รูปภาพอัปเดตสำเร็จ!'})
+    return JsonResponse({'error': 'คำขอไม่ถูกต้อง'}, status=400)
 
 
 

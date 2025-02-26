@@ -46,6 +46,7 @@ class ParkingLocation(models.Model):
 
 
 # ------------------------ Parking Spot Model ------------------------
+from django.apps import apps
 class ParkingSpot(models.Model):
     spot_number = models.IntegerField()
     is_available = models.BooleanField(default=True)
@@ -55,20 +56,31 @@ class ParkingSpot(models.Model):
     )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    x_position = models.IntegerField(default=100, null=True, blank=True)  # ความกว้าง
-    y_position = models.IntegerField(default=100, null=True, blank=True)  # ความยาว
-    width = models.IntegerField(default=100, null=True, blank=True)  # ความกว้าง
-    height = models.IntegerField(default=100, null=True, blank=True)  # ความยาว
+    x_position = models.IntegerField(default=100, null=True, blank=True)
+    y_position = models.IntegerField(default=100, null=True, blank=True)
+    width = models.IntegerField(default=100, null=True, blank=True)
+    height = models.IntegerField(default=100, null=True, blank=True)
+
     def __str__(self):
         return f"Spot {self.spot_number} at {self.location.name}"
+
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)  # บันทึก ParkingSpot ก่อน
-        ROI.objects.get_or_create(
-            name=f"ROI for Spot {self.spot_number}",
-            parking_spot=self,
-            location=self.location,  # เชื่อม ROI กับสถานที่นี้
-            defaults={"x_position": self.x_position, "y_position": self.y_position, "width": self.width, "height": self.height}
-        )
+
+        ROI = apps.get_model('easypark', 'ROI')  # Lazy Load ROI
+        roi, created = ROI.objects.get_or_create(parking_spot=self)
+
+        # ป้องกันการรีเซ็ตค่าถ้า ROI มีอยู่แล้ว
+        if created or roi.x_position == 100 and roi.y_position == 100:
+            roi.x_position = self.x_position
+            roi.y_position = self.y_position
+            roi.width = self.width
+            roi.height = self.height
+            roi.location = self.location  # อัปเดต location ด้วย
+            roi.name = f"ROI for Spot {self.spot_number}"
+            roi.save()
+
+
 
 
 # ------------------------ Booking Model (การจองปัจจุบัน) ------------------------
@@ -164,4 +176,7 @@ class ROI(models.Model):
 
     def __str__(self):
         return f"ROI for Spot {self.parking_spot.spot_number} at {self.location.name}"
+    
+
+
 

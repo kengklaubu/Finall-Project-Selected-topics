@@ -281,18 +281,27 @@
                     {% endfor %}
                 </select>
 
+                <!-- แสดงรูปเดิม -->
+                <label class="block text-gray-700">รูปภาพเดิม</label>
+                <div class="mb-3">
+                    <img id="editCurrentImage" src="" alt="รูปภาพเดิม" class="w-full h-40 object-cover rounded-lg">
+                </div>
+
+                <!-- อัปโหลดรูปใหม่ -->
+                <label class="block text-gray-700">อัปโหลดรูปใหม่ (ถ้าต้องการเปลี่ยน)</label>
+                <input type="file" id="editImage" name="image" accept="image/*"
+                    class="w-full p-2 border rounded-lg mb-3">
+
                 <div class="flex justify-end space-x-2 mt-4">
                     <button type="button" onclick="closeEditLocationModal()"
                         class="bg-gray-500 hover:bg-gray-600 text-white py-2 px-4 rounded">❌ ยกเลิก</button>
                     <button type="submit" onclick="saveEditLocation(event)"
-                        class="bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded">
-                        💾 บันทึกการแก้ไข
-                    </button>
-
+                        class="bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded">💾 บันทึกการแก้ไข</button>
                 </div>
             </form>
         </div>
     </div>
+
 
 
 
@@ -447,6 +456,15 @@
                         document.getElementById("editCameraUrl").value = data.location.camera_url || "";
                         document.getElementById("editLocationOwner").value = data.location.owner || "";
 
+                        // ✅ แสดงรูปเดิม ถ้ามีรูป
+                        const currentImage = document.getElementById("editCurrentImage");
+                        if (data.location.image_url) {
+                            currentImage.src = data.location.image_url;
+                            currentImage.style.display = "block";
+                        } else {
+                            currentImage.style.display = "none"; // ซ่อนถ้าไม่มีรูป
+                        }
+
                         // ✅ แสดง Modal
                         document.getElementById("editLocationModal").style.display = "flex";
                     } else {
@@ -455,6 +473,7 @@
                 })
                 .catch(error => console.error("❌ Error fetching location data:", error));
         }
+
 
         // ✅ ฟังก์ชันแก้ไขสถานที่โดยไม่รีเฟรชหน้า
         function saveEditLocation(event) {

@@ -30,6 +30,14 @@
             </form>
         </div>
     </header>
+    <!-- Back Button -->
+    <div class="container mx-auto my-4">
+        <button onclick="window.history.back()"
+            class="bg-gray-500 text-white py-2 px-4 rounded-lg hover:bg-gray-600 transition">
+            🔙 ย้อนกลับ
+        </button>
+    </div>
+
 
     <!-- Profile Section -->
     <div class="container mx-auto mt-10 bg-white p-8 shadow-lg rounded-lg max-w-3xl">
@@ -42,7 +50,7 @@
 
         <form method="post" action="{% url 'update_profile' %}">
             {% csrf_token %}
-            
+
             <!-- First Name -->
             <div class="mb-4">
                 <label for="first_name" class="block text-gray-700 font-semibold">ชื่อ:</label>
@@ -73,6 +81,9 @@
     </div>
 
 
+
+
+
     <div class="container mx-auto mt-10 bg-white p-8 shadow-lg rounded-lg max-w-4xl">
         <h2 class="text-2xl font-bold text-gray-800 mb-4">📝 ประวัติการจอง</h2>
         <table class="w-full border-collapse rounded-lg overflow-hidden shadow-md">
@@ -82,32 +93,47 @@
                     <th class="p-3 text-left">🚗 ช่องจอด</th>
                     <th class="p-3 text-left">📅 วันที่จอง</th>
                     <th class="p-3 text-left">🔄 สถานะ</th>
+                    <th class="p-3 text-left">🗑️ ยกเลิก</th>
                 </tr>
             </thead>
             <tbody>
-                {% for Booking in bookings %}
+                {% for booking in bookings %}
                 <tr class="border-b border-gray-300">
-                    <td class="p-3">{{ Booking.parking_spot.location.name }}</td>
-                    <td class="p-3 font-semibold text-blue-600">#{{ Booking.parking_spot.spot_number }}</td>
-                    <td class="p-3">{{ Booking.reservation_date }}</td>
+                    <td class="p-3">{{ booking.parking_spot.location.name }}</td>
+                    <td class="p-3 font-semibold text-blue-600">#{{ booking.parking_spot.spot_number }}</td>
+                    <td class="p-3">{{ booking.reservation_date }}</td>
                     <td class="p-3">
                         <span class="px-3 py-1 rounded-md text-white 
-                            {% if Booking.status == 'completed' %} bg-green-500 
-                            {% elif Booking.status == 'active' %} bg-yellow-500 
+                            {% if booking.status == 'completed' %} bg-green-500 
+                            {% elif booking.status == 'active' %} bg-yellow-500 
                             {% else %} bg-red-500 {% endif %}">
-                            {{ Booking.status }}
+                            {{ booking.status }}
                         </span>
+                    </td>
+                    <td class="p-3">
+                        {% if booking.status == 'active' %}
+                        <form method="post" action="{% url 'cancel_booking' booking.id %}">
+                            {% csrf_token %}
+                            <button type="submit" class="bg-red-500 text-white px-3 py-1 rounded-md hover:bg-red-600">
+                                ยกเลิก ❌
+                            </button>
+                        </form>
+                        {% else %}
+                        <span class="text-gray-400">-</span>
+                        {% endif %}
                     </td>
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="4" class="text-center p-4 text-gray-500">❌ ไม่มีประวัติการจอง</td>
+                    <td colspan="5" class="text-center p-4 text-gray-500">❌ ไม่มีประวัติการจอง</td>
                 </tr>
                 {% endfor %}
             </tbody>
+
         </table>
     </div>
-    
+
+
 
 
 
