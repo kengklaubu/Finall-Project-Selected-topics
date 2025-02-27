@@ -331,7 +331,6 @@
         <!-- ✅ JavaScript -->
         <script>
 
-
             // เปิด Modal
             document.getElementById('edit-image-btn').addEventListener('click', () => {
                 document.getElementById('edit-image-modal').classList.remove('hidden');
@@ -400,11 +399,6 @@
                     });
                 });
             });
-
-
-
-
-
 
 
 
@@ -652,7 +646,7 @@
             }
 
             // ✅ อัปเดตสถานะที่จอดรถทุกๆ 5 วินาที
-            // setInterval(fetchParkingStatus, 1000);
+            setInterval(fetchParkingStatus, 1000);
 
 
 
@@ -814,7 +808,7 @@
                             }
                         })
                         .catch(error => console.error("❌ Error:", error));
-                    //setInterval(fetchParkingStatus, 1000);
+                    setInterval(fetchParkingStatus, 1000);
                 }
 
                 function showToast(message, type = "info") {
@@ -936,7 +930,7 @@
                     }
                 });
             });
-            //setInterval(fetchParkingStatus, 1000);
+            setInterval(fetchParkingStatus, 1000);
         </script>
 
 

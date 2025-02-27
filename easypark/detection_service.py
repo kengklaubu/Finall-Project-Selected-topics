@@ -127,7 +127,7 @@ def detect_cars(selected_location):
         if stop_event.is_set():  
             break  
 
-        if cv2.waitKey(5000) & 0xFF == ord('q'):  
+        if cv2.waitKey(3000) & 0xFF == ord('q'):  
             break  
 
     cap.release()

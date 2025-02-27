@@ -47,10 +47,13 @@ class ParkingLocation(models.Model):
 
 # ------------------------ Parking Spot Model ------------------------
 from django.apps import apps
+from django.db import models
+from django.conf import settings
+
 class ParkingSpot(models.Model):
-    spot_number = models.IntegerField()
+    spot_number = models.PositiveIntegerField()
     is_available = models.BooleanField(default=True)
-    location = models.ForeignKey(ParkingLocation, on_delete=models.CASCADE)
+    location = models.ForeignKey("ParkingLocation", on_delete=models.CASCADE)
     reserved_by = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True
     )
@@ -61,24 +64,39 @@ class ParkingSpot(models.Model):
     width = models.IntegerField(default=100, null=True, blank=True)
     height = models.IntegerField(default=100, null=True, blank=True)
 
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['location', 'spot_number'], name="unique_spot_per_location")
+        ]
+
     def __str__(self):
         return f"Spot {self.spot_number} at {self.location.name}"
 
     def save(self, *args, **kwargs):
+        if not self.location:
+            raise ValueError("❌ ParkingSpot ต้องมี location เสมอ")
+
         super().save(*args, **kwargs)  # บันทึก ParkingSpot ก่อน
 
         ROI = apps.get_model('easypark', 'ROI')  # Lazy Load ROI
-        roi, created = ROI.objects.get_or_create(parking_spot=self)
+        roi, created = ROI.objects.get_or_create(
+            parking_spot=self,
+            defaults={
+                "x_position": self.x_position,
+                "y_position": self.y_position,
+                "width": self.width,
+                "height": self.height,
+                "location": self.location,
+                "name": f"ROI for Spot {self.spot_number}"
+            }
+        )
 
-        # ป้องกันการรีเซ็ตค่าถ้า ROI มีอยู่แล้ว
-        if created or roi.x_position == 100 and roi.y_position == 100:
-            roi.x_position = self.x_position
-            roi.y_position = self.y_position
-            roi.width = self.width
-            roi.height = self.height
-            roi.location = self.location  # อัปเดต location ด้วย
-            roi.name = f"ROI for Spot {self.spot_number}"
+        # ✅ ถ้า ROI ถูกสร้างใหม่ ให้ใช้ค่าจาก ParkingSpot
+        # ❌ ถ้า ROI มีอยู่แล้ว ไม่ต้องอัปเดตค่า x_position, y_position, width, height
+        if created:
             roi.save()
+
+
 
 
 

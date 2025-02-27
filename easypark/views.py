@@ -820,14 +820,18 @@ from .models import ParkingSpot, ParkingLocation
 def add_parking_spot(request, location_id):
     location = get_object_or_404(ParkingLocation, id=location_id)
 
-    # ตรวจสอบสิทธิ์ว่าเป็นเจ้าของสถานที่นี้
+    # ตรวจสอบว่าเป็นเจ้าของที่จอดรถ
     if request.user != location.owner:
         return JsonResponse({"success": False, "error": "คุณไม่มีสิทธิ์เพิ่มช่องจอดที่นี่"}, status=403)
 
     if request.method == "POST":
         spot_number = request.POST.get("spot_number")
 
-        # ตรวจสอบว่าช่องจอดนี้มีอยู่แล้วหรือไม่
+        if not spot_number or not spot_number.isdigit():
+            return JsonResponse({"success": False, "error": "กรุณาระบุหมายเลขช่องจอดที่ถูกต้อง"}, status=400)
+
+        spot_number = int(spot_number)
+
         if ParkingSpot.objects.filter(location=location, spot_number=spot_number).exists():
             return JsonResponse({"success": False, "error": "❌ ช่องจอดนี้มีอยู่แล้ว"}, status=400)
 
