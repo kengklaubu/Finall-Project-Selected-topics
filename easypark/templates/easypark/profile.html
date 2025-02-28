@@ -104,9 +104,10 @@
                     <td class="p-3">{{ booking.reservation_date }}</td>
                     <td class="p-3">
                         <span class="px-3 py-1 rounded-md text-white 
-                            {% if booking.status == 'completed' %} bg-green-500 
-                            {% elif booking.status == 'active' %} bg-yellow-500 
-                            {% else %} bg-red-500 {% endif %}">
+    {% if booking.status == 'completed' %} bg-green-500 
+    {% elif booking.status == 'active' %} bg-yellow-500 
+    {% elif booking.status == 'pending' %} bg-blue-500 
+    {% else %} bg-red-500 {% endif %}">
                             {{ booking.status }}
                         </span>
                     </td>

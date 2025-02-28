@@ -107,11 +107,15 @@ from django.db import models
 from django.utils import timezone
 from django.conf import settings
 
+
+from django.utils import timezone
+
 class Booking(models.Model):
     STATUS_CHOICES = [
-        ('active', 'Active'),      # กำลังใช้งาน
-        ('cancelled', 'Cancelled'), # ถูกยกเลิก
-        ('completed', 'Completed') # เสร็จสิ้น
+        ('active', 'Active'),      
+        ('cancelled', 'Cancelled'),
+        ('completed', 'Completed'),
+        ('pending', 'Pending'),
     ]
 
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
@@ -120,21 +124,24 @@ class Booking(models.Model):
     reservation_date = models.DateField(default=timezone.now)
     reservation_start_time = models.TimeField(default="08:00:00")
     reservation_end_time = models.TimeField(default="12:00:00")
-    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='active')
-    cancelled_at = models.DateTimeField(null=True, blank=True)  # เวลาที่ยกเลิก (ถ้ามี)
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='pending')
+    reserved_at = models.DateTimeField(default=timezone.now, editable=False)
+
+    cancelled_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     def save(self, *args, **kwargs):
-        """ อัปเดตสถานะของที่จอดเมื่อมีการจอง """
         if self.status == 'active':
             self.parking_spot.is_available = False
             self.parking_spot.reserved_by = self.user
         elif self.status in ['cancelled', 'completed']:
             self.parking_spot.is_available = True
             self.parking_spot.reserved_by = None
-        self.parking_spot.save()  # บันทึกการเปลี่ยนแปลงของ ParkingSpot
-        super().save(*args, **kwargs)  # บันทึกการจอง
+        self.parking_spot.save()
+        super().save(*args, **kwargs)
+
+
 
     def complete_booking(self):
         """ ย้ายข้อมูลจาก Booking ไป Reservation และคืนที่จอด """
