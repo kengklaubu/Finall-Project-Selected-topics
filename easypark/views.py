@@ -463,15 +463,6 @@ def update_profile(request):
     return redirect('profile')
 
 
-from django.shortcuts import render
-from easypark.models import Reservation
-
-
-def reservation_history(request):
-    # ดึงประวัติการจอง
-    reservations = Reservation.objects.select_related('location', 'parking_spot').filter(user=request.user)
-    return render(request, 'easypark/reservation_history.html', {'reservations': reservations})
-
 
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponseForbidden
@@ -682,10 +673,11 @@ from django.contrib.auth.decorators import login_required
 from django.utils import timezone
 from .models import ParkingSpot, Booking, ParkingLocation
 
+from threading import Timer
+
 @login_required
 def reserve_page(request, spot_number):
-    
-    location_id = request.GET.get('location_id')  # รับ location_id จาก query string
+    location_id = request.GET.get('location_id')
 
     try:
         parking_spot = ParkingSpot.objects.get(spot_number=spot_number, location_id=location_id)
@@ -693,7 +685,6 @@ def reserve_page(request, spot_number):
         return render(request, 'easypark/error.html', {'message': 'ไม่พบที่จอดนี้ในสถานที่นี้'})
     except ParkingSpot.MultipleObjectsReturned:
         return render(request, 'easypark/error.html', {'message': 'มีที่จอดหลายรายการในสถานที่นี้ กรุณาติดต่อผู้ดูแล'})
-    print(f"Spot Number: {parking_spot.spot_number}")  # ตรวจสอบค่าที่ดึงมาได้
 
     if request.method == 'POST':
         start_time = request.POST.get('start_time', '08:00:00')
@@ -702,26 +693,53 @@ def reserve_page(request, spot_number):
         if not parking_spot.is_available:
             return render(request, 'easypark/error.html', {'message': 'ที่จอดนี้ถูกจองแล้ว'})
 
-        Booking.objects.create(
+        booking = Booking.objects.create(
             user=request.user,
             parking_spot=parking_spot,
             location=parking_spot.location,
             reservation_date=timezone.now().date(),
             reservation_start_time=start_time,
             reservation_end_time=end_time,
-            status='active'
+            status='pending',  # เปลี่ยนจาก active เป็น pending
+            reserved_at=timezone.now()
         )
 
         parking_spot.is_available = False
         parking_spot.reserved_by = request.user
         parking_spot.save()
 
+        # ตั้งเวลา 5 นาที (300 วินาที) เพื่อตรวจสอบว่ามีรถเข้ามาหรือยัง
+        Timer(300, auto_cancel_booking, args=[booking.id]).start()
+
         return redirect('profile')
 
     return render(request, 'easypark/reserve_page.html', {
-    'spot': parking_spot,
-    'spot_number': parking_spot.spot_number,
-})
+        'spot': parking_spot,
+        'spot_number': parking_spot.spot_number,
+    })
+
+def auto_cancel_booking(booking_id):
+    from django.utils import timezone
+
+    try:
+        booking = Booking.objects.get(id=booking_id)
+        parking_spot = booking.parking_spot
+
+        # เช็คว่าเกิน 5 นาทีแล้วยังไม่มีรถเข้าจอดจริงหรือไม่
+        if booking.status == 'pending' and parking_spot.is_available:
+            booking.status = 'cancelled'
+            booking.cancelled_at = timezone.now()
+            booking.save()
+
+            # คืนสถานะให้ที่จอดเป็นว่าง
+            parking_spot.is_available = True
+            parking_spot.reserved_by = None
+            parking_spot.save()
+
+            print(f"❌ Reservation {booking.id} was automatically cancelled due to no arrival within 5 minutes.")
+    except Booking.DoesNotExist:
+        print("⚠️ Booking not found for auto-cancellation.")
+
 
 
 def success_page(request):
@@ -820,14 +838,18 @@ from .models import ParkingSpot, ParkingLocation
 def add_parking_spot(request, location_id):
     location = get_object_or_404(ParkingLocation, id=location_id)
 
-    # ตรวจสอบสิทธิ์ว่าเป็นเจ้าของสถานที่นี้
+    # ตรวจสอบว่าเป็นเจ้าของที่จอดรถ
     if request.user != location.owner:
         return JsonResponse({"success": False, "error": "คุณไม่มีสิทธิ์เพิ่มช่องจอดที่นี่"}, status=403)
 
     if request.method == "POST":
         spot_number = request.POST.get("spot_number")
 
-        # ตรวจสอบว่าช่องจอดนี้มีอยู่แล้วหรือไม่
+        if not spot_number or not spot_number.isdigit():
+            return JsonResponse({"success": False, "error": "กรุณาระบุหมายเลขช่องจอดที่ถูกต้อง"}, status=400)
+
+        spot_number = int(spot_number)
+
         if ParkingSpot.objects.filter(location=location, spot_number=spot_number).exists():
             return JsonResponse({"success": False, "error": "❌ ช่องจอดนี้มีอยู่แล้ว"}, status=400)
 

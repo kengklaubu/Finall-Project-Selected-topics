@@ -22,7 +22,7 @@ urlpatterns = [
     path('accounts/login/', LoginView.as_view(template_name='easypark/login.html'), name='login'),
     path('logout/', views.logout_view, name='logout'),
     path('success_page/', views.success_page, name='success_page'),
-    path('reservation_history/', views.reservation_history, name='reservation_history'),
+    #path('reservation_history/', views.reservation_history, name='reservation_history'),
     path('login/', views.login_page, name='login_page'),  
     path('admin_dashboard/', views.admin_dashboard, name='admin_dashboard'),  
     path('manager_dashboard/<int:location_id>/', views.manager_dashboard, name='manager_dashboard'),

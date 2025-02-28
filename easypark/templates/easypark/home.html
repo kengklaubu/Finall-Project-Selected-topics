@@ -96,8 +96,8 @@
                 event.preventDefault(); // ป้องกันการ submit ปกติ       
 
                 const selectedLocation = document.getElementById('location-select').value;
-                console.log("Selected location:", selectedLocation); // ✅ ตรวจสอบค่า location_id
-                alert("Selected location: " + selectedLocation); // ✅ แสดง popup เช็คค่า
+                // console.log("Selected location:", selectedLocation); // ✅ ตรวจสอบค่า location_id
+                // alert("Selected location: " + selectedLocation); // ✅ แสดง popup เช็คค่า
 
                 fetch(`/start_detection/?location_id=${encodeURIComponent(selectedLocation)}`)
                     .then(response => response.json())

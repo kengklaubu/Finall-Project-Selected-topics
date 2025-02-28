@@ -215,12 +215,6 @@
         class="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white p-6 rounded-2xl shadow-xl max-w-lg w-full z-50 hidden">
     </div>
 
-
-    <h2>คุณเลือกสถานที่: {{ location.name }}</h2>
-
-
-
-
     <div class="flex w-full justify-around">
         <!-- ฝั่งแสดงรูป (ที่จอดรถ) -->
         <div class="w-1/2 mt-8 max-w-2xl mx-auto bg-white p-6 rounded-lg shadow-lg p-6 rounded-lg shadow-xl">
@@ -266,9 +260,6 @@
             </div>
         </div>
     </div>
-
-
-
 
 
     <script>
@@ -336,7 +327,7 @@
         }
 
         // ✅ อัปเดตสถานะทุก 2 วินาที
-        //setInterval(fetchParkingStatus, 2000);
+        setInterval(fetchParkingStatus, 5000);
 
 
 
@@ -410,7 +401,7 @@
         }
 
         // ดึงข้อมูลอัตโนมัติทุก 2 วินาที
-        //setInterval(fetchParkingStatus, 2000);
+        setInterval(fetchParkingStatus, 5000);
     </script>
 
 

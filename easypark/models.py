@@ -47,10 +47,13 @@ class ParkingLocation(models.Model):
 
 # ------------------------ Parking Spot Model ------------------------
 from django.apps import apps
+from django.db import models
+from django.conf import settings
+
 class ParkingSpot(models.Model):
-    spot_number = models.IntegerField()
+    spot_number = models.PositiveIntegerField()
     is_available = models.BooleanField(default=True)
-    location = models.ForeignKey(ParkingLocation, on_delete=models.CASCADE)
+    location = models.ForeignKey("ParkingLocation", on_delete=models.CASCADE)
     reserved_by = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True
     )
@@ -61,24 +64,39 @@ class ParkingSpot(models.Model):
     width = models.IntegerField(default=100, null=True, blank=True)
     height = models.IntegerField(default=100, null=True, blank=True)
 
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['location', 'spot_number'], name="unique_spot_per_location")
+        ]
+
     def __str__(self):
         return f"Spot {self.spot_number} at {self.location.name}"
 
     def save(self, *args, **kwargs):
+        if not self.location:
+            raise ValueError("❌ ParkingSpot ต้องมี location เสมอ")
+
         super().save(*args, **kwargs)  # บันทึก ParkingSpot ก่อน
 
         ROI = apps.get_model('easypark', 'ROI')  # Lazy Load ROI
-        roi, created = ROI.objects.get_or_create(parking_spot=self)
+        roi, created = ROI.objects.get_or_create(
+            parking_spot=self,
+            defaults={
+                "x_position": self.x_position,
+                "y_position": self.y_position,
+                "width": self.width,
+                "height": self.height,
+                "location": self.location,
+                "name": f"ROI for Spot {self.spot_number}"
+            }
+        )
 
-        # ป้องกันการรีเซ็ตค่าถ้า ROI มีอยู่แล้ว
-        if created or roi.x_position == 100 and roi.y_position == 100:
-            roi.x_position = self.x_position
-            roi.y_position = self.y_position
-            roi.width = self.width
-            roi.height = self.height
-            roi.location = self.location  # อัปเดต location ด้วย
-            roi.name = f"ROI for Spot {self.spot_number}"
+        # ✅ ถ้า ROI ถูกสร้างใหม่ ให้ใช้ค่าจาก ParkingSpot
+        # ❌ ถ้า ROI มีอยู่แล้ว ไม่ต้องอัปเดตค่า x_position, y_position, width, height
+        if created:
             roi.save()
+
+
 
 
 
@@ -89,11 +107,15 @@ from django.db import models
 from django.utils import timezone
 from django.conf import settings
 
+
+from django.utils import timezone
+
 class Booking(models.Model):
     STATUS_CHOICES = [
-        ('active', 'Active'),      # กำลังใช้งาน
-        ('cancelled', 'Cancelled'), # ถูกยกเลิก
-        ('completed', 'Completed') # เสร็จสิ้น
+        ('active', 'Active'),      
+        ('cancelled', 'Cancelled'),
+        ('completed', 'Completed'),
+        ('pending', 'Pending'),
     ]
 
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
@@ -102,21 +124,24 @@ class Booking(models.Model):
     reservation_date = models.DateField(default=timezone.now)
     reservation_start_time = models.TimeField(default="08:00:00")
     reservation_end_time = models.TimeField(default="12:00:00")
-    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='active')
-    cancelled_at = models.DateTimeField(null=True, blank=True)  # เวลาที่ยกเลิก (ถ้ามี)
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='pending')
+    reserved_at = models.DateTimeField(default=timezone.now, editable=False)
+
+    cancelled_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     def save(self, *args, **kwargs):
-        """ อัปเดตสถานะของที่จอดเมื่อมีการจอง """
         if self.status == 'active':
             self.parking_spot.is_available = False
             self.parking_spot.reserved_by = self.user
         elif self.status in ['cancelled', 'completed']:
             self.parking_spot.is_available = True
             self.parking_spot.reserved_by = None
-        self.parking_spot.save()  # บันทึกการเปลี่ยนแปลงของ ParkingSpot
-        super().save(*args, **kwargs)  # บันทึกการจอง
+        self.parking_spot.save()
+        super().save(*args, **kwargs)
+
+
 
     def complete_booking(self):
         """ ย้ายข้อมูลจาก Booking ไป Reservation และคืนที่จอด """
