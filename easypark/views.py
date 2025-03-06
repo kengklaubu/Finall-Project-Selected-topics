@@ -708,8 +708,7 @@ def reserve_page(request, spot_number):
         parking_spot.reserved_by = request.user
         parking_spot.save()
 
-        # ตั้งเวลา 5 นาที (300 วินาที) เพื่อตรวจสอบว่ามีรถเข้ามาหรือยัง
-        Timer(300, auto_cancel_booking, args=[booking.id]).start()
+        Timer(60, auto_cancel_booking, args=[booking.id]).start()
 
         return redirect('profile')
 
