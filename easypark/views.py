@@ -700,7 +700,7 @@ def reserve_page(request, spot_number):
             reservation_date=timezone.now().date(),
             reservation_start_time=start_time,
             reservation_end_time=end_time,
-            status='pending',  # เปลี่ยนจาก active เป็น pending
+            status='pending',  # เปลี่ยนจาก active เป็น pending แสดงถึงว่ากำลังรอให้รถเข้า
             reserved_at=timezone.now()
         )
 
@@ -708,7 +708,7 @@ def reserve_page(request, spot_number):
         parking_spot.reserved_by = request.user
         parking_spot.save()
 
-        Timer(60, auto_cancel_booking, args=[booking.id]).start()
+        Timer(300, auto_cancel_booking, args=[booking.id]).start()
 
         return redirect('profile')
 
