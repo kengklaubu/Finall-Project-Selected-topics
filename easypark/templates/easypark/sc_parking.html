@@ -229,9 +229,16 @@
                         d="M64 80c-8.8 0-16 7.2-16 16l0 320c0 8.8 7.2 16 16 16l320 0c8.8 0 16-7.2 16-16l0-320c0-8.8-7.2-16-16-16L64 80zM0 96C0 60.7 28.7 32 64 32l320 0c35.3 0 64 28.7 64 64l0 320c0 35.3-28.7 64-64 64L64 480c-35.3 0-64-28.7-64-64L0 96zM337 209L209 337c-9.4 9.4-24.6 9.4-33.9 0l-64-64c-9.4-9.4-9.4-24.6 0-33.9s24.6-9.4 33.9 0l47 47L303 175c9.4-9.4 24.6-9.4 33.9 0s9.4 24.6 0 33.9z"
                         transform="translate({{ spot.x_position }}, {{ spot.y_position }}) scale(0.05)">
                     </path>
+
                     <!-- Path สีแดง (ที่จอดไม่ว่าง) -->
                     <path id="spot-path-red-{{ spot.id }}" fill="#ff0000" style="display: none;"
                         d="M256 48a208 208 0 1 1 0 416 208 208 0 1 1 0-416zm0 464A256 256 0 1 0 256 0a256 256 0 1 0 0 512zM175 175c-9.4 9.4-9.4 24.6 0 33.9l47 47-47 47c-9.4 9.4-9.4 24.6 0 33.9s24.6 9.4 33.9 0l47-47 47 47c-9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-47-47 47-47c-9.4-9.4 9.4-24.6 0-33.9s-24.6-9.4-33.9 0l-47 47-47-47c-9.4-9.4-24.6-9.4-33.9 0z"
+                        transform="translate({{ spot.x_position }}, {{ spot.y_position }}) scale(0.05)">
+                    </path>
+
+                    <!-- เพิ่ม Path สีเหลือง (กำลังดำเนินการ) -->
+                    <path id="spot-path-yellow-{{ spot.id }}" fill="#ffc107" style="display: none;"
+                        d="M256 512A256 256 0 1 0 256 0a256 256 0 1 0 0 512zm0-384c13.3 0 24 10.7 24 24V264c0 13.3-10.7 24-24 24s-24-10.7-24-24V152c0-13.3 10.7-24 24-24zM224 352a32 32 0 1 1 64 0 32 32 0 1 1 -64 0z"
                         transform="translate({{ spot.x_position }}, {{ spot.y_position }}) scale(0.05)">
                     </path>
                 </g>
@@ -293,33 +300,44 @@
                     console.log("🚗 Parking status fetched:", data);
 
                     data.forEach(function (spot) {
-                        console.log("📌 Spot data:", spot); // ✅ ตรวจสอบว่ามีค่า spot.id หรือไม่
-                        console.log(`🔍 Looking for #spot-${spot.id}`);
+                        console.log("📌 Spot data:", spot);
 
                         const pathGreen = document.querySelector(`#spot-path-green-${spot.id}`);
                         const pathRed = document.querySelector(`#spot-path-red-${spot.id}`);
 
-                        if (!spot.id) {
-                            console.error(`❌ spot.id is undefined for`, spot);
-                            return;
-                        }
+                        // เพิ่ม path สำหรับสถานะ pending (ถ้ามี)
+                        const pathYellow = document.querySelector(`#spot-path-yellow-${spot.id}`);
 
                         if (!pathGreen || !pathRed) {
                             console.warn(`❌ Path elements for spot-${spot.id} not found.`);
                             return;
                         }
 
-                        // ✅ ซ่อน/แสดง path ตามสถานะที่จอดรถ
-                        if (spot.is_available) {
-                            pathGreen.style.display = "block";  // แสดงสีเขียว
-                            pathRed.style.display = "none";     // ซ่อนสีแดง
+                        // กำหนดการแสดงผลตามสถานะ
+                        if (spot.status === 'pending') {
+                            // ถ้ามี path สำหรับ pending ให้แสดงมัน
+                            if (pathYellow) {
+                                pathGreen.style.display = "none";
+                                pathRed.style.display = "none";
+                                pathYellow.style.display = "block";
+                            } else {
+                                // ถ้าไม่มี path สำหรับ pending ให้แสดงสีแดงแทน
+                                pathGreen.style.display = "none";
+                                pathRed.style.display = "block";
+                            }
+                        } else if (spot.status === 'active' || !spot.is_available) {
+                            // แสดงสีแดงสำหรับที่จอดไม่ว่าง
+                            pathGreen.style.display = "none";
+                            pathRed.style.display = "block";
+                            if (pathYellow) pathYellow.style.display = "none";
                         } else {
-                            pathGreen.style.display = "none";   // ซ่อนสีเขียว
-                            pathRed.style.display = "block";    // แสดงสีแดง
+                            // แสดงสีเขียวสำหรับที่จอดว่าง
+                            pathGreen.style.display = "block";
+                            pathRed.style.display = "none";
+                            if (pathYellow) pathYellow.style.display = "none";
                         }
                     });
                 },
-
                 error: function () {
                     console.error("❌ Error fetching parking status");
                 }
@@ -356,21 +374,32 @@
                         return;
                     }
 
-                    detailsContainer.innerHTML = `
-                <div class="space-y-4">
-                    <h3 class="text-xl font-bold text-gray-800">🚗 ช่องจอดหมายเลข ${data.spot_number}</h3>
-                    <p class="text-gray-600"><strong>สถานะ:</strong> ${data.is_available ?
-                            `<span class="text-green-500">ว่าง</span>` :
-                            `<span class="text-red-500">ไม่ว่าง</span>`}</p>
-                    <p class="text-gray-600"><strong>จองโดย:</strong> ${data.reserved_by || "ไม่มีข้อมูล"}</p>
+                    // กำหนดการแสดงผลตามสถานะ
+                    let statusDisplay = '';
+                    let actionButton = '';
 
-                    <div class="flex justify-end gap-2">
-                        ${data.is_available ?
-                            `<button class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition" onclick="goToReservePage(${data.spot_number})">🚀 จองที่นี่</button>`
-                            : `<p class="text-red-400">❌ ไม่สามารถจองได้</p>`}
-                        <button class="bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400 transition" onclick="closeModal()">❎ ปิด</button>
-                    </div>
+                    if (data.status === 'pending') {
+                        statusDisplay = `<span class="text-yellow-500 font-medium">⏳ กำลังดำเนินการ</span>`;
+                        actionButton = `<p class="text-yellow-500">⚠️ มีผู้ใช้กำลังดำเนินการจองที่นี่</p>`;
+                    } else if (data.status === 'active' || !data.is_available) {
+                        statusDisplay = `<span class="text-red-500 font-medium">❌ ไม่ว่าง</span>`;
+                        actionButton = `<p class="text-red-500">❌ ไม่สามารถจองได้</p>`;
+                    } else {
+                        statusDisplay = `<span class="text-green-500 font-medium">✅ ว่าง</span>`;
+                        actionButton = `<button class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition" onclick="goToReservePage(${data.spot_number})">🚀 จองที่นี่</button>`;
+                    }
+
+                    detailsContainer.innerHTML = `
+            <div class="space-y-4">
+                <h3 class="text-xl font-bold text-gray-800">🚗 ช่องจอดหมายเลข ${data.spot_number}</h3>
+                <p class="text-gray-600"><strong>สถานะ:</strong> ${statusDisplay}</p>
+                <p class="text-gray-600"><strong>จองโดย:</strong> ${data.reserved_by || "ไม่มีข้อมูล"}</p>
+
+                <div class="flex justify-end gap-2">
+                    ${actionButton}
+                    <button class="bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400 transition" onclick="closeModal()">❎ ปิด</button>
                 </div>
+            </div>
             `;
 
                     showModal();

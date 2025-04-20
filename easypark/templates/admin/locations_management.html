@@ -109,9 +109,9 @@
             <a href="{% url 'user_management' %}" class="block py-3 px-6 hover:bg-gray-700 flex items-center">
                 👥 <span class="ml-2">Users</span>
             </a>
-            <a href="#" class="block py-3 px-6 hover:bg-gray-700 flex items-center">
+            <!-- <a href="#" class="block py-3 px-6 hover:bg-gray-700 flex items-center">
                 ⚙️ <span class="ml-2">Settings</span>
-            </a>
+            </a> -->
             <a href="{% url 'locations_management' %}" class="block py-3 px-6 hover:bg-gray-700 flex items-center">
                 📍 <span class="ml-2">Locations</span>
             </a>
@@ -231,8 +231,10 @@
                     {% endfor %}
                 </select>
 
-                <label class="block text-gray-700">รูปภาพ</label>
-                <input type="file" id="image" name="image" class="w-full p-2 border rounded-lg mb-3">
+
+                <label class="block text-gray-700">รูปภาพ <span class="text-red-500">*</span></label>
+                <input type="file" id="image" name="image" class="w-full p-2 border rounded-lg mb-1">
+                <div id="image-error" class="text-red-500 text-sm mb-3 hidden">กรุณาแนบรูปภาพสถานที่</div>
 
                 <div class="flex justify-end space-x-2 mt-4">
                     <button type="button" onclick="closeAddLocationModal()"
@@ -308,6 +310,60 @@
 
 
     <script>
+        // เพิ่มโค้ด JavaScript นี้ต่อจาก script ที่มีอยู่แล้ว
+        document.addEventListener('DOMContentLoaded', function () {
+            // เพิ่ม Event Listener สำหรับการส่งฟอร์มเพิ่มสถานที่
+            const addLocationForm = document.getElementById('addLocationForm');
+            const imageInput = document.getElementById('image');
+            const imageError = document.getElementById('image-error');
+
+            // อัปเดตฟังก์ชัน saveAddLocation
+            window.saveAddLocation = function (event) {
+                event.preventDefault();
+
+                // ตรวจสอบว่ามีการเลือกไฟล์รูปภาพหรือไม่
+                if (!imageInput.files || imageInput.files.length === 0) {
+                    // แสดงข้อความแจ้งเตือน
+                    imageError.classList.remove('hidden');
+                    return false;
+                }
+
+                // ซ่อนข้อความแจ้งเตือนหากมีการเลือกไฟล์
+                imageError.classList.add('hidden');
+
+                // ดำเนินการส่งฟอร์มตามปกติ
+                const form = document.getElementById("addLocationForm");
+                const formData = new FormData(form);
+
+                fetch("/locations/add/", {
+                    method: "POST",
+                    body: formData,
+                    credentials: "include"
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            showNotification("✅ สำเร็จ", "เพิ่มสถานที่เรียบร้อยแล้ว");
+                            addTableRow(data.location);
+                            clearAddLocationForm();
+                            closeAddLocationModal();
+                        } else {
+                            showNotification("❌ ข้อผิดพลาด", data.error);
+                        }
+                    })
+                    .catch(error => showNotification("❌ ข้อผิดพลาด", "เกิดปัญหาขณะเพิ่มข้อมูล"));
+            };
+
+            // เพิ่ม Event Listener สำหรับการเปลี่ยนแปลงไฟล์
+            if (imageInput) {
+                imageInput.addEventListener('change', function () {
+                    if (this.files && this.files.length > 0) {
+                        // ซ่อนข้อความแจ้งเตือนเมื่อมีการเลือกไฟล์
+                        imageError.classList.add('hidden');
+                    }
+                });
+            }
+        });
         function clearAddLocationForm() {
             document.getElementById("locationName").value = "";
             document.getElementById("description").value = "";

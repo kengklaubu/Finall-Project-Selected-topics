@@ -37,6 +37,7 @@
                 <span class="text-white">👤 {{ request.user.username }}</span>
                 <a href="{% url 'profile' %}" class="text-white hover:underline">โปรไฟล์</a>
                 <a href="{% url 'manager_add_location' %}" class="text-white hover:underline">เพิ่มสถานที่</a>
+                <a href="{% url 'manager_location_selection' %}" class="text-white hover:underline">เลือกสถานที่</a>
                 <form action="{% url 'logout' %}" method="post">
                     {% csrf_token %}
                     <button type="submit"

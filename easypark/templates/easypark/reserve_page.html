@@ -28,7 +28,9 @@
             </div>
             <div class="flex items-center space-x-6">
                 <a href="{% url 'homepage' %}" class="hover:text-gray-300 transition">🏠 หน้าหลัก</a>
-                <img src="{% static 'easypark/image/user_1.png' %}" alt="User Icon" class="h-10 w-10 rounded-full">
+                <a href="{% url 'profile' %}" class="user-icon">
+                    <img src="{% static 'easypark/image/user_1.png' %}" alt="User Icon" class="h-10 w-10 rounded-full">
+                </a>
             </div>
         </div>
     </header>
