@@ -30,13 +30,12 @@ def login_page(request):
         password = request.POST['password']
         user = authenticate(request, username=username, password=password)
 
-        if user :
-            print(user.role)  # เพิ่มบรรทัดนี้เพื่อเช็คว่า role ของผู้ใช้ถูกต้อง
+        if user:
             login(request, user)
             if user.role == 'admin':
                 return redirect('admin_dashboard')
             elif user.role == 'manager':
-                return redirect('manager_dashboard')
+                return redirect('manager_location_selection')  # เปลี่ยนเป็นหน้าเลือกลานจอดรถ
             else:
                 return redirect('user_dashboard')
         else:
@@ -95,37 +94,59 @@ def admin_dashboard(request):
     }
     return render(request, 'easypark/admin_dashboard.html', context)
 
-
-from django.shortcuts import render, get_object_or_404
-from django.contrib.auth.decorators import login_required
-from django.http import HttpResponseForbidden
-from .models import ParkingLocation ,Reservation, ParkingSpot,Booking,ROI
+@login_required
+def manager_location_selection(request):
+    # ตรวจสอบสิทธิ์ว่าเป็น manager
+    if request.user.role != 'manager':
+        return HttpResponseForbidden("You do not have permission to access this page.")
+        
+    # ดึงข้อมูลลานจอดรถทั้งหมดที่ manager เป็นเจ้าของ
+    locations = ParkingLocation.objects.filter(owner=request.user)
+    
+    return render(request, 'easypark/manager_locations.html', {
+        'locations': locations
+    })
 
 @login_required
-def manager_dashboard(request, location_id):
+def manager_dashboard(request, location_id=None):
+    # ตรวจสอบสิทธิ์ว่าเป็น manager
     rois = ROI.objects.all()
-    # ค้นหา location ที่ผู้ใช้เป็นเจ้าของ
-    location = ParkingLocation.objects.get(id=location_id)
-
-    # ตรวจสอบว่า user เป็นเจ้าของ location นี้หรือไม่
-    if location.owner != request.user:
-        return HttpResponseForbidden("You do not have permission to access this location.")
-
+    if request.user.role != 'manager':
+        return HttpResponseForbidden("You do not have permission to access this page.")
+    
+    # กรณีที่มีการส่ง location_id มาใน URL
+    if location_id is not None:
+        try:
+            location = ParkingLocation.objects.get(id=location_id, owner=request.user)
+        except ParkingLocation.DoesNotExist:
+            return HttpResponseForbidden("You do not have permission to access this location.")
+    # กรณีที่มีการส่ง location_id มาทาง GET parameter
+    elif 'location_id' in request.GET:
+        try:
+            location_id = request.GET['location_id']
+            location = ParkingLocation.objects.get(id=location_id, owner=request.user)
+        except ParkingLocation.DoesNotExist:
+            return HttpResponseForbidden("You do not have permission to access this location.")
+    # กรณีที่ไม่มี location_id ใดๆ ให้ redirect ไปยังหน้าเลือกลานจอดรถ
+    else:
+        return redirect('manager_location_selection')
+    
     # ดึงข้อมูลที่ต้องการแสดงในหน้า dashboard
     reservations = Reservation.objects.filter(parking_spot__location=location)
     bookings = Booking.objects.filter(parking_spot__location=location)
     parking_spots = ParkingSpot.objects.filter(location=location)
     rois = ROI.objects.filter(location=location)
-
-    # ส่งข้อมูลทั้งหมดไปยัง template
+    
     return render(request, 'easypark/manager_dashboard.html', {
         'location': location,
         'reservations': reservations,
         'parking_spots': parking_spots,
         'current_location': location.name,
         'bookings': bookings,
-        'rois': rois
+        'rois': rois,
+        'user_locations': ParkingLocation.objects.filter(owner=request.user)  # เพื่อทำ dropdown หรือ sidebar
     })
+
 
 from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
@@ -533,15 +554,8 @@ def homepage(request):
         if request.user.role == 'admin':
             return redirect('admin_dashboard')  # เปลี่ยนไปหน้าแดชบอร์ดของแอดมิน
         elif request.user.role == 'manager':
-            # ตรวจสอบว่า manager เป็นเจ้าของ location อะไรบ้าง
-            locations_owned_by_manager = ParkingLocation.objects.filter(owner=request.user)
-
-            if locations_owned_by_manager.exists():
-                # ถ้ามี location ที่เป็นของ manager ให้ redirect ไปที่หน้า dashboard ของ location แรก
-                return redirect('manager_dashboard', location_id=locations_owned_by_manager.first().id)
-            else:
-                # ถ้า manager ไม่มี location ให้ไปที่หน้าอื่นหรือแสดงข้อมูล
-                return render(request, 'easypark/home.html', {'locations': locations, 'default_location': default_location, 'message': 'You do not own any locations.'})
+            # พาไปยังหน้าเลือกลานจอดรถแทนการพาไปที่ลานจอดรถแรกโดยตรง
+            return redirect('manager_location_selection')
         else:
             # สำหรับผู้ใช้ทั่วไป
             return render(request, 'easypark/home.html', {'locations': locations, 'default_location': default_location})
@@ -581,18 +595,23 @@ def get_parking_status(request):
     if not spots.exists():  # กรณีไม่มีข้อมูลใน location_id นี้
         return JsonResponse({'error': 'ไม่มีข้อมูลช่องจอดสำหรับ location_id นี้'}, status=404)
 
-    # สร้าง JSON response
-    data = [
-        {
+    result = []
+    for spot in spots:
+        # ตรวจสอบการจองล่าสุด
+        booking = Booking.objects.filter(parking_spot=spot).order_by('-created_at').first()
+        status = 'available'
+        
+        if booking and booking.status in ['active', 'pending']:
+            status = booking.status
+        
+        result.append({
+            'id': spot.id,
             'spot_number': spot.spot_number,
             'is_available': spot.is_available,
-        }
-        for spot in spots
-    ]
-
-    return JsonResponse([
-    {"id": spot.id, "is_available": spot.is_available} for spot in spots
-], safe=False)
+            'status': status
+        })
+    
+    return JsonResponse(result, safe=False)
 
 
 
@@ -623,10 +642,18 @@ def get_spot_details(request):
     except:
         return JsonResponse({'error': 'Invalid location or spot ID'}, status=400)
 
-    # ✅ เพิ่ม spot_number ลงไปใน response
+    # ตรวจสอบการจองล่าสุดของช่องจอดนี้
+    booking = Booking.objects.filter(parking_spot=spot).order_by('-created_at').first()
+    
+    status = 'available'
+    if booking and booking.status in ['active', 'pending']:
+        status = booking.status
+    
+    # ส่งข้อมูลเพิ่มเติมเกี่ยวกับสถานะ
     return JsonResponse({
-        'spot_number': spot.spot_number,  # แก้จาก 'id': spot.id
+        'spot_number': spot.spot_number,
         'is_available': spot.is_available,
+        'status': status,  # เพิ่มสถานะ
         'reserved_by': spot.reserved_by.username if spot.reserved_by else None,
     })
 
@@ -768,7 +795,7 @@ def cancel_booking(request, booking_id):
         return redirect('manager_dashboard', location_id=booking.parking_spot.location.id)
 
     # ยกเลิกการจอง
-    if booking.status == 'active':
+    if booking.status == 'active' or booking.status == 'pending':
         booking.status = 'cancelled'
         booking.cancelled_at = timezone.now()
         booking.parking_spot.is_available = True
@@ -1077,6 +1104,10 @@ def admin_add_location(request):
 
             owner = get_object_or_404(User, id=owner_id)
             image = request.FILES.get("image")
+            
+            # ตรวจสอบว่ามีการอัปโหลดรูปภาพหรือไม่
+            if not image:
+                return JsonResponse({"success": False, "error": "กรุณาอัปโหลดรูปภาพของสถานที่"})
 
             # ✅ ป้องกันค่า slug ซ้ำ
             base_slug = slugify(name)
