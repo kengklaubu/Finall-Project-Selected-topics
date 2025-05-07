@@ -36,6 +36,7 @@ class ParkingLocation(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)  # เวลาที่สร้าง
     updated_at = models.DateTimeField(auto_now=True)  # เวลาที่อัปเดตล่าสุด
     image = models.ImageField(upload_to='parking_images/', null=True, blank=True)
+    floor = models.IntegerField(null=True, blank=True)
     owner = models.ForeignKey(
         settings.AUTH_USER_MODEL,  # ใช้ settings.AUTH_USER_MODEL แทน auth.User
         on_delete=models.CASCADE

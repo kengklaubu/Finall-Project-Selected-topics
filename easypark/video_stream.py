@@ -42,6 +42,7 @@ def generate_frames(location):
         for roi in rois:
             x, y, w, h = int(roi.x_position), int(roi.y_position), int(roi.width), int(roi.height)
             cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)  # ✅ สีเขียว
+            #cv2.circle(frame,(x,y), 5, (255, 165, 0), -1)
 
         # ✅ ตรวจจับวัตถุด้วย YOLOv5
         if model is not None:
@@ -51,9 +52,12 @@ def generate_frames(location):
             # ✅ วาด bounding box ของรถที่ตรวจจับได้
             for _, row in detections.iterrows():
                 x1, y1, x2, y2 = int(row['xmin']), int(row['ymin']), int(row['xmax']), int(row['ymax'])
+                cv2.circle(frame,(x1,y1), 5, (255, 0, 0), -1)
+                #cv2.circle(frame,(x2,y2), 5, (153, 165, 0), -1)
                 conf, cls = row['confidence'], row['name']
 
-                cv2.rectangle(frame, (x1, y1), (x2, y2), (255, 0, 0), 2)  # 🔹 สีฟ้า
+                cv2.rectangle(frame, (x1, y1),(x2, y2),(255, 0, 0), 2)
+                #cv2.rectangle(frame, (153, 0, 0), 2)
                 cv2.putText(frame, f"{cls} {conf:.2f}", (x1, y1 - 10), 
                             cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
 

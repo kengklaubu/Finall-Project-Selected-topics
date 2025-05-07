@@ -1,6 +1,5 @@
 import time
 from django.apps import apps
-
 DETECTION_DELAY = 3  # กำหนดค่าหน่วงเวลาเป็น 3 วินาที
 # ใช้ dictionary เพื่อเก็บเวลาเริ่มต้นของแต่ละช่องจอด
 spot_timers = {}
@@ -29,11 +28,13 @@ def update_parking_status(rois, detections, location_name):
 
         for _, row in detections.iterrows():
             label = row['name']
+            #print("label",label)
             x1, y1, x2, y2 = int(row['xmin']), int(row['ymin']), int(row['xmax']), int(row['ymax'])
-
-            if label == 'car' and (x1 < x + w and x2 > x and y1 < y + h and y2 > y):
+            if label == 'car' or label == 'truck' and (x1 < x + w and x2 > x and y1 < y + h and y2 > y):
                 detected = True
                 break
+
+        
 
         # ตรวจสอบว่ามีรถในช่องจอดต่อเนื่อง 3 วินาทีหรือไม่
         if detected:
@@ -57,3 +58,6 @@ def update_parking_status(rois, detections, location_name):
                 print(f"✅ Updated spot {spot_number}: Available")
             except ParkingSpot.DoesNotExist:
                 print(f"❌ Parking spot {spot_number} in location '{location.name}' does not exist.")
+
+        
+

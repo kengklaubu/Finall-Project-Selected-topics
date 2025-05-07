@@ -1,13 +1,14 @@
 import cv2
 import torch
 from django.apps import apps
-from .utils import update_parking_status  # ฟังก์ชันสำหรับอัปเดตสถานะ
+from easypark.utils import update_parking_status  # ฟังก์ชันสำหรับอัปเดตสถานะ
 import threading
 
 is_active = False  # ตัวแปรควบคุมสถานะการทำงานของการตรวจจับ
 detection_thread = None  # เก็บ Thread ของการตรวจจับ
 current_location = None  # เก็บ location ปัจจุบัน
 stop_event = threading.Event()  # ใช้หยุดเธรด
+CONFIDENCE_THRESHOLD = 0.40
 
 _model = None  # เก็บโมเดลในตัวแปร Global
 
@@ -16,10 +17,13 @@ def load_model():
     if _model is None:  # โหลดครั้งเดียว
         try:
             _model = torch.hub.load('ultralytics/yolov5', 'yolov5s')
+            # กำหนดค่า confidence threshold หลังจากโหลดโมเดล
+            _model.conf = CONFIDENCE_THRESHOLD
         except Exception as e:
             print(f"❌ Error loading YOLOv5 model: {e}")
             _model = None
     return _model
+
 
 def get_camera_url(location_id):
     ParkingLocation = apps.get_model('easypark', 'ParkingLocation')
@@ -119,6 +123,7 @@ def detect_cars(selected_location):
         if not ret:
             break
 
+        # เรียกใช้โมเดลโดยไม่ส่ง conf parameter
         results = model(frame)
         detections = results.pandas().xyxy[0]  
 
@@ -133,3 +138,4 @@ def detect_cars(selected_location):
     cap.release()
     cv2.destroyAllWindows()
     print(f"🚗 Detection stopped for location: {selected_location}")
+
