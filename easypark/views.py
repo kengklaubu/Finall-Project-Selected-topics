@@ -141,7 +141,7 @@ def manager_dashboard(request, location_id=None):
         'location': location,
         'reservations': reservations,
         'parking_spots': parking_spots,
-        'current_location': location.name,
+        'current_location': location,
         'bookings': bookings,
         'rois': rois,
         'user_locations': ParkingLocation.objects.filter(owner=request.user)  # เพื่อทำ dropdown หรือ sidebar
@@ -156,22 +156,33 @@ from .forms import ParkingLocationForm
 
 @login_required
 def manager_add_location(request):
-    location = None  # กำหนดค่าเริ่มต้นให้ location เป็น None
+    location = None
     if request.method == "POST":
         form = ParkingLocationForm(request.POST, request.FILES)
         if form.is_valid():
+            # ตรวจสอบว่ามีรูปภาพหรือไม่
+            if 'image' not in request.FILES:
+                form.add_error('image', 'กรุณาเลือกรูปภาพสถานที่')
+                messages.error(request, "❌ กรุณาเลือกรูปภาพสถานที่")
+                return render(request, 'easypark/manager_add_location.html', {
+                    'form': form,
+                    'location': location
+                })
+                
             location = form.save(commit=False)
             location.owner = request.user
             location.save()
             messages.success(request, "✅ เพิ่มสถานที่จอดรถเรียบร้อยแล้ว!")
-
-            return redirect('manager_dashboard', location.id)  # ✅ ใช้ location.id ที่เพิ่งบันทึก
+            return redirect('manager_dashboard', location_id=location.id)
+        else:
+            # แสดงข้อผิดพลาดของฟอร์ม
+            messages.error(request, "❌ พบข้อผิดพลาดในฟอร์ม กรุณาตรวจสอบข้อมูล")
     else:
         form = ParkingLocationForm()
 
     return render(request, 'easypark/manager_add_location.html', {
         'form': form,
-        'location': location  # ✅ ส่ง location ไปที่ template
+        'location': location
     })
 
 

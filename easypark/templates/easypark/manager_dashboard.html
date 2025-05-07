@@ -52,7 +52,7 @@
     <!-- Dashboard Header -->
     <div class="container mx-auto mt-8">
         <h1 class="text-3xl font-bold text-gray-800 text-center mb-6">📊 Manager Dashboard</h1>
-        <h2 class="text-xl font-semibold text-center text-gray-600">📍 {{ current_location }}</h2>
+        <h2 class="text-xl font-semibold text-center text-gray-600">📍 {{ current_location.name }} {{ current_location.floor }} </h2>
     </div>
 
     <!-- Reservation History -->
@@ -219,8 +219,13 @@
                 <!-- แสดงรูปภาพปัจจุบัน -->
                 <div class="mb-4">
                     <p class="text-gray-700">📷 รูปภาพปัจจุบัน:</p>
-                    <img id="current-image" src="{{ location.image.url }}" alt="Current Image"
-                        class="rounded-lg shadow-md w-full">
+                    {% if location.image %}
+                    <img id="current-image" src="{{ location.image.url }}" alt="Current Image" class="mt-2 max-h-48">
+                    {% else %}
+                    <div class="mt-2 p-4 border border-dashed border-gray-300 text-center text-gray-500">
+                        ไม่มีรูปภาพ
+                    </div>
+                    {% endif %}
                 </div>
 
                 <!-- อัปโหลดรูปภาพใหม่ -->
