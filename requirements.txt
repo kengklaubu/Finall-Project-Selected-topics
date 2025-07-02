@@ -9,3 +9,5 @@ apscheduler
 opencv-python
 torch
 Pillow
+pandas
+seaborn
