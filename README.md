@@ -2,24 +2,37 @@
 
 ## ขั้นตอนการติดตั้ง
 
-1. ติดตั้ง Python และ MariaDB บนเครื่องของคุณ
-2. Run CMD as administrator และใช้คำสั่งด้านล่าง
+1. ติดตั้ง Xampp บนเครื่องของคุณ
+
+สามารถดาวโหลดได้จากลิ้งค์ด้านล่าง
+ 
 ```
-   net start MariaDB
+https://www.apachefriends.org/download.html
 ```
-3. Clone โปรเจคนี้:
+2. Clone โปรเจคนี้:
    ```bash
-   git clone -b Mockupdata https://github.com/your-repo/easy-parking.git
-   cd Easy_Parking
+   git clone -b main https://github.com/kengklaubu/Easy_Parking.git
    ```
-## Firststep Use comands 
+
+## Download Data Mockup
+สามารถดาวโหลดได้จากลิ้งค์ด้านล่าง
+ 
+
+https://drive.google.com/drive/folders/1RG8kOw1wok6VPlOCsVyzghTKZauzojdB?usp=sharing
+
+
+## ขั้นตอนการ Mockup Data
 ```
+เมื่อดาวโหลด data มาแล้วให้ทำการสร้าง database ที่ชื่อว่า easyparking บน phpMyaAmin
+จากนั้นให้ทำการ Import database ที่ดาวโหลดมา ลงไปใน database ที่สร้างไว้ก่อนหน้านี้
+
+```
+
+## Using this commands for run project
+```
+cd Easy_Parking
 pip install -r requirements.txt
+python manage.py makemigrations
+python manage.py migrate
+python manage.py runserver
 ```
-
-## load data commands 
-```
-python manage.py load_mockup_data
-```
-##  Dont forget to net start MariaDB on CMD 
-
