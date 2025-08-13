@@ -556,23 +556,34 @@ import os
 import csv
 from django.conf import settings
 
+from django.shortcuts import render, redirect
+
 def homepage(request):
     locations = ParkingLocation.objects.all()
-    default_location = ParkingLocation.objects.get(name='อ้อมใหญ่')
+    # เลือกสถานที่แรกตามลำดับ id (จะได้ None ถ้าไม่มีสถานที่)
+    default_location = locations.order_by('id').first()
 
     if request.user.is_authenticated:
         # ตรวจสอบ role ของผู้ใช้ที่ล็อกอิน
-        if request.user.role == 'admin':
+        role = getattr(request.user, 'role', None)
+        if role == 'admin':
             return redirect('admin_dashboard')  # เปลี่ยนไปหน้าแดชบอร์ดของแอดมิน
-        elif request.user.role == 'manager':
+        elif role == 'manager':
             # พาไปยังหน้าเลือกลานจอดรถแทนการพาไปที่ลานจอดรถแรกโดยตรง
             return redirect('manager_location_selection')
         else:
             # สำหรับผู้ใช้ทั่วไป
-            return render(request, 'easypark/home.html', {'locations': locations, 'default_location': default_location})
+            return render(request, 'easypark/home.html', {
+                'locations': locations,
+                'default_location': default_location
+            })
     else:
         # ถ้าผู้ใช้ไม่ได้ล็อกอิน ก็ให้แสดงหน้า homepage
-        return render(request, 'easypark/home.html', {'locations': locations, 'default_location': default_location})
+        return render(request, 'easypark/home.html', {
+            'locations': locations,
+            'default_location': default_location
+        })
+
 
 
     

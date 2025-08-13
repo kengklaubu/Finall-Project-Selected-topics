@@ -144,13 +144,13 @@ ASGI_APPLICATION = "easyparking.asgi.application"
 # https://docs.djangoproject.com/en/5.0/ref/settings/#databases
 
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'easyparking',  # ชื่อฐานข้อมูล
-        'USER': 'root',         # ชื่อผู้ใช้ของ MySQL
-        'PASSWORD': '',         # รหัสผ่านของ MySQL
-        'HOST': 'localhost',    # หรือ IP ของเซิร์ฟเวอร์ฐานข้อมูล MySQL
-        'PORT': '3306',         # พอร์ตของ MySQL (ค่าเริ่มต้นคือ 3306)
+    "default": {
+        "ENGINE": "django.db.backends.mysql",
+        "NAME": os.getenv("DB_NAME", "easyparking"),
+        "USER": os.getenv("DB_USER", "root"),
+        "PASSWORD": os.getenv("DB_PASSWORD", ""),
+        "HOST": os.getenv("DB_HOST", "db"),  # ต้องเป็น 'db'
+        "PORT": os.getenv("DB_PORT", "3306"),
         'OPTIONS': {
             'sql_mode': 'STRICT_TRANS_TABLES',  # เปิด Strict Mode
         },
