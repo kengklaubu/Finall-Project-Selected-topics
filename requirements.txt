@@ -2,7 +2,9 @@ Django == 5.0.6
 openpyxl
 channels
 python-dotenv
-mysqlclient
+psycopg[binary]
+gunicorn
+whitenoise[brotli]
 requests
 django-cron
 apscheduler

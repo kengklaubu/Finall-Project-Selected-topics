@@ -109,6 +109,8 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",
 ]
 
 
@@ -143,21 +145,30 @@ ASGI_APPLICATION = "easyparking.asgi.application"
 # Database
 # https://docs.djangoproject.com/en/5.0/ref/settings/#databases
 
+DEBUG = os.getenv("DEBUG", "0") == "1"
+ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "").split(",")
+
+STATIC_URL = "/static/"
+STATIC_ROOT = BASE_DIR / "staticfiles"
+
+MEDIA_URL = "/media/"
+MEDIA_ROOT = BASE_DIR / "media"
+
+# Database
 DATABASES = {
     "default": {
-        "ENGINE": "django.db.backends.mysql",
+        "ENGINE": os.getenv("DB_ENGINE", "django.db.backends.postgresql"),
         "NAME": os.getenv("DB_NAME", "easyparking"),
-        "USER": os.getenv("DB_USER", "root"),
+        "USER": os.getenv("DB_USER", "postgres"),
         "PASSWORD": os.getenv("DB_PASSWORD", ""),
-        "HOST": os.getenv("DB_HOST", "db"),  # ต้องเป็น 'db'
-        "PORT": os.getenv("DB_PORT", "3306"),
-        'OPTIONS': {
-            'sql_mode': 'STRICT_TRANS_TABLES',  # เปิด Strict Mode
-        },
-        'CONN_MAX_AGE': 600,    # ระยะเวลาการเชื่อมต่อที่สามารถเก็บไว้ได้ (600 วินาที = 10 นาที)
-        'ATOMIC_REQUESTS': True,  # ทำให้ทุก request เป็น atomic transaction
+        "HOST": os.getenv("DB_HOST", "db"),
+        "PORT": os.getenv("DB_PORT", "5432"),
     }
 }
+
+
+# เปิด compression / manifest (แนะนำใน prod)
+STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
 
 

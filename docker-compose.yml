@@ -5,19 +5,19 @@ services:
       dockerfile: Dockerfile
     command: >
       bash -lc '
+      export SKIP_SCHEDULER=1;
+      python manage.py collectstatic --noinput &&
       for i in {1..30}; do
         python manage.py migrate --noinput && break;
         echo "DB not ready, retrying ($i/30)..."; sleep 2;
       done;
-      python manage.py runserver 0.0.0.0:8000
+      gunicorn easyparking.wsgi:application --bind 0.0.0.0:8000 --workers 3
       '
     env_file: .env
     environment:
       DJANGO_SETTINGS_MODULE: ${DJANGO_SETTINGS_MODULE:-easyparking.settings}
       DB_HOST: db
-      DB_PORT: 3306
-    volumes:
-      - ./:/app
+      DB_PORT: 5432
     ports:
       - "8000:8000"
     depends_on:
@@ -25,26 +25,21 @@ services:
         condition: service_healthy
 
   db:
-    image: mysql:8.0
+    image: postgres:16
     environment:
-      MYSQL_DATABASE: ${DB_NAME:-easyparking}
-      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-changeme}
-    command: --default-authentication-plugin=mysql_native_password --lower_case_table_names=1
-    volumes:
-      - db_data:/var/lib/mysql
+      POSTGRES_DB: ${DB_NAME:-easyparking}
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-changeme}
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-p${DB_PASSWORD:-changeme}"]
-      interval: 10s
-      timeout: 5s
-      retries: 15
-
-  adminer:
-    image: adminer:4
-    ports:
-      - "8080:8080"
-    depends_on:
-      db:
-        condition: service_started
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    # ถ้าอยากให้ต่อจากเครื่องโฮสต์ด้วยไคลเอนต์ ให้ปลดคอมเมนต์:
+    # ports:
+    #   - "5432:5432"
 
 volumes:
-  db_data:
+  pg_data:
