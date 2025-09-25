@@ -220,7 +220,7 @@
         <div class="w-1/2 mt-8 max-w-2xl mx-auto bg-white p-6 rounded-lg shadow-lg p-6 rounded-lg shadow-xl">
             <h2 class="text-2xl font-bold mb-4 text-center">🅿️ รายละเอียดสถานที่จอดรถ</h2>
             <svg id="parking-map" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 300" width="100%" height="100%">
-                <image href="{{location.image.url}}" x_position="0" y_position="0" width="500" height="300" />
+                <image href="{{ request.scheme }}://{{ request.get_host }}/s65114540079{{ location.image.url }}" />
                 {% for spot in spots %}
                 <g id="spot-{{ spot.id }}" data-spot-id="{{ spot.id }}"
                     onclick="showSpotDetails(this.getAttribute('data-spot-id'))">
@@ -275,12 +275,12 @@
             const locationSelect = document.getElementById('location-select');
 
             // ตั้งค่า default stream
-            const defaultStream = `/live/{{ location.id }}/`;
+            const defaultStream = `/s65114540079/live/{{ location.id }}/`;
             liveStream.src = defaultStream;
 
             locationSelect.addEventListener('change', function () {
                 const locationId = this.value;
-                liveStream.src = locationId ? `/live/${locationId}/` : defaultStream;
+                liveStream.src = locationId ? `/s65114540079/live/${locationId}/` : defaultStream;
             });
 
             // เรียกข้อมูลจอดรถเมื่อโหลดหน้า
@@ -293,9 +293,10 @@
             const locationId = document.getElementById('location-select').value || "{{ location.id }}";
 
             $.ajax({
-                url: "{% url 'get_parking_status' %}",
+                url: "/s65114540079/api/get_parking_status",
                 method: "GET",
                 data: { location_id: locationId },
+
                 success: function (data) {
                     console.log("🚗 Parking status fetched:", data);
 
@@ -362,7 +363,7 @@
             console.log("Fetching details for Location ID:", locationId, "Spot ID:", spotId);
 
             $.ajax({
-                url: "{% url 'get_spot_details' %}",
+                url: "/s65114540079/api/get_spot_details",
                 method: "GET",
                 data: { location_id: locationId, spot_id: spotId },
                 success: function (data) {
@@ -415,7 +416,7 @@
 
         function goToReservePage(spotNumber) {
             const locationId = document.getElementById('location-select').value || "{{ location.id }}";
-            window.location.href = `/reserve_page/${spotNumber}/?location_id=${locationId}`;
+            window.location.href = `/s65114540079/reserve_page/${spotNumber}/?location_id=${locationId}`;
         }
 
 

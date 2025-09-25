@@ -47,7 +47,7 @@
                             <div class="bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition duration-150 overflow-hidden h-full">
                                 <div class="h-48 bg-blue-200 relative overflow-hidden">
                                     {% if location.image %}
-                                        <img src="{{ location.image.url }}" alt="{{ location.name }}" class="w-full h-full object-cover">
+                                        <image href="{{ request.scheme }}://{{ request.get_host }}/s65114540079{{ location.image.url }}">
                                     {% else %}
                                         <div class="flex items-center justify-center h-full bg-blue-100">
                                             <svg xmlns="http://www.w3.org/2000/svg" class="h-20 w-20 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">

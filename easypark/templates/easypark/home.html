@@ -99,11 +99,11 @@
                 // console.log("Selected location:", selectedLocation); // ✅ ตรวจสอบค่า location_id
                 // alert("Selected location: " + selectedLocation); // ✅ แสดง popup เช็คค่า
 
-                fetch(`/start_detection/?location_id=${encodeURIComponent(selectedLocation)}`)
+                fetch(`/s65114540079/start_detection/?location_id=${encodeURIComponent(selectedLocation)}`)
                     .then(response => response.json())
                     .then(data => {
                         if (data.status === "success") {
-                            window.location.href = `/sc-parking/${selectedLocation}/`;
+                            window.location.href = `/s65114540079/sc-parking/${selectedLocation}/`;
                         } else {
                             alert("Error: " + (data.message || "Unable to start detection"));
                         }
@@ -124,13 +124,13 @@
             const modalBackground = document.getElementById('modal-background');
             const isAuthenticated = "{{ user.is_authenticated|yesno:'true,false' }}";
 
-            liveStream.src = '/live/1/';
+            liveStream.src = '/s65114540079/live/1/';
 
             locationSelect.addEventListener('change', function () {
-                liveStream.src = `/live/${this.value}/`;
+                liveStream.src = `/s65114540079/live/${this.value}/`;
 
 
-                fetch(`/start_detection/?location_id=${encodeURIComponent(this.value)}`)
+                fetch(`/s65114540079/start_detection/?location_id=${encodeURIComponent(this.value)}`)
                     .then(response => response.json())
                     .then(data => {
                         if (data.status !== "success") {

@@ -1,12 +1,22 @@
+version: '3.8'
+
 services:
-  nginx:
-    image: nginx:1.25.3
+  traefik:
+    image: traefik:v2.10
+    container_name: traefik
+    command:
+      - --providers.docker=true
+      - --entrypoints.web.address=:80
+      - --api.insecure=true     # (เปิด dashboard — ถ้าต้องการ)
     ports:
-      - "10079:80"
+      - "80:80"
+      # (ถ้าต้องการเปิด dashboard HTTP ก็อาจเปิด 8080)
+      #"9090:8080"
     volumes:
-      - ./nginx.conf:/etc/nginx/conf.d/default.conf
-    depends_on:
-      - web
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./traefik/traefik.yml:/etc/traefik/traefik.yml
+    networks:
+      - webnet
 
   web:
     build:
@@ -27,12 +37,32 @@ services:
       DJANGO_SETTINGS_MODULE: ${DJANGO_SETTINGS_MODULE:-easyparking.settings}
       DB_HOST: db
       DB_PORT: 5432
-    # The 'web' service no longer needs to expose its port directly to the host
-    # ports:
-    #   - "8000:8000"
+    ports:
+      - "8000:8000"
     depends_on:
       db:
         condition: service_healthy
+    networks:
+      - webnet
+    labels:
+      - "traefik.enable=true"
+      # กำหนด router ให้จับ path /s65114540079
+      - "traefik.http.routers.easyparking.rule=Host(`192.168.0.115`) && PathPrefix(`/s65114540079`)"
+      - "traefik.http.routers.easyparking.entrypoints=web"
+      # middleware: strip prefix /s65114540079 ก่อนส่งไป Django
+      - "traefik.http.routers.easyparking.middlewares=strip-s65114540079"
+      - "traefik.http.middlewares.strip-s65114540079.stripprefix.prefixes=/s65114540079"
+      # บอก port ที่ Django ใช้ภายใน
+      - "traefik.http.services.easyparking.loadbalancer.server.port=8000"
+
+      - "traefik.http.routers.easyparking.rule=Host(`192.168.0.115`) && (PathPrefix(`/s65114540079/static`) || PathPrefix(`/s65114540079/media`) || PathPrefix(`/s65114540079`))"
+      - "traefik.http.routers.easyparking.middlewares=strip-s65114540079"
+
+      # 👇 rule สำหรับ media โดยเฉพาะ
+      - "traefik.http.routers.easypark-media.rule=PathPrefix(`/s65114540079/media`)"
+  
+  # ...
+
 
   db:
     image: postgres:16
@@ -47,9 +77,12 @@ services:
       retries: 20
     volumes:
       - pg_data:/var/lib/postgresql/data
-    # ถ้าอยากให้ต่อจากเครื่องโฮสต์ด้วยไคลเอนต์ ให้ปลดคอมเมนต์:
-    # ports:
-    #   - "5432:5432"
+    networks:
+      - webnet
 
 volumes:
   pg_data:
+
+networks:
+  webnet:
+    driver: bridge

@@ -10,6 +10,11 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.0/ref/settings/
 """
 
+
+# ถ้า Django ต้องรู้ว่าหน้าเว็บ “รันภายใต้ path /s65114540079”
+FORCE_SCRIPT_NAME = "/s65114540079"
+USE_X_FORWARDED_HOST = True
+
 from pathlib import Path
 import os
 from dotenv import load_dotenv
@@ -18,6 +23,11 @@ from dotenv import load_dotenv
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
+
+
+MEDIA_URL = f"{FORCE_SCRIPT_NAME}/media/"
+MEDIA_ROOT = BASE_DIR / "media"
+
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.0/howto/deployment/checklist/
 
@@ -25,9 +35,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = "django-insecure-o$n*=8bq_ivwjgazx##%32ha3*_=tpx%^9z6=ok!zfwspr*!45"
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
 
-ALLOWED_HOSTS = []
+
+
 
 APPEND_SLASH = False
 
@@ -80,8 +90,7 @@ AUTH_USER_MODEL = 'easypark.CustomUser'
 
 
 
-MEDIA_URL = '/media/'
-MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
 
 
 
@@ -148,11 +157,11 @@ ASGI_APPLICATION = "easyparking.asgi.application"
 DEBUG = os.getenv("DEBUG", "0") == "1"
 ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "").split(",")
 
-STATIC_URL = "/static/"
-STATIC_ROOT = BASE_DIR / "staticfiles"
+STATIC_URL = f"{FORCE_SCRIPT_NAME}/static/"
+STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
 
-MEDIA_URL = "/media/"
-MEDIA_ROOT = BASE_DIR / "media"
+
+
 
 # Database
 DATABASES = {
@@ -215,11 +224,11 @@ USE_I18N = True
 
 
 
-STATIC_URL = '/static/'
+
 STATICFILES_DIRS = [
-    BASE_DIR / "static",
+    os.path.join(BASE_DIR, "static"),
 ]
-STATIC_ROOT = BASE_DIR / "staticfiles"
+
 
 
 
