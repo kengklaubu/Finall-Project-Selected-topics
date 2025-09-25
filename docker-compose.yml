@@ -47,7 +47,7 @@ services:
     labels:
       - "traefik.enable=true"
       # กำหนด router ให้จับ path /s65114540079
-      - "traefik.http.routers.easyparking.rule=Host(`192.168.0.115`) && PathPrefix(`/s65114540079`)"
+      - "traefik.http.routers.easyparking.rule=Host(`10.80.21.9`) && PathPrefix(`/s65114540079`)"
       - "traefik.http.routers.easyparking.entrypoints=web"
       # middleware: strip prefix /s65114540079 ก่อนส่งไป Django
       - "traefik.http.routers.easyparking.middlewares=strip-s65114540079"
@@ -55,7 +55,7 @@ services:
       # บอก port ที่ Django ใช้ภายใน
       - "traefik.http.services.easyparking.loadbalancer.server.port=8000"
 
-      - "traefik.http.routers.easyparking.rule=Host(`192.168.0.115`) && (PathPrefix(`/s65114540079/static`) || PathPrefix(`/s65114540079/media`) || PathPrefix(`/s65114540079`))"
+      - "traefik.http.routers.easyparking.rule=Host(`10.80.21.9`) && (PathPrefix(`/s65114540079/static`) || PathPrefix(`/s65114540079/media`) || PathPrefix(`/s65114540079`))"
       - "traefik.http.routers.easyparking.middlewares=strip-s65114540079"
 
       # 👇 rule สำหรับ media โดยเฉพาะ
